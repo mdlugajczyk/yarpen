@@ -6,6 +6,7 @@ class Tokenizer(object):
         extended_alphabetic_character = r"!|\$|%|&|\*|\+|-|\.|/|:|<|=|>|\?|@|\^|_|~"  # as per R5RS
         rules = [("\(", "LPAREN"),
                  ("\)", "RPAREN"),
+                 ("'", "QUOTE"),
                  ("-??((\d+\.\d*)|(\d+.e-??\d+)|\d)+", 'NUMBER'),
                  ('#', 'HASH'),
                  ("({0}|[a-zA-Z]|\d)+".format(extended_alphabetic_character), 'SYMBOL')]

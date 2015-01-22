@@ -27,5 +27,10 @@ class TokenizerTest(unittest.TestCase):
         self.assertEqual(Tokenizer("foo #(bar))").tokenize(),
                          [("foo", "SYMBOL"), ("#", "HASH"), ("(", "LPAREN"),
                           ("bar", "SYMBOL"), (")", "RPAREN"), (")", "RPAREN")])
+
+    def test_tokenizes_quote(self):
+        self.assertEqual(Tokenizer("foo 'bar fnord").tokenize(),
+                         [("foo", "SYMBOL"), ("'", "QUOTE"), ("bar", "SYMBOL"), ("fnord", "SYMBOL")])
+        
 if __name__ == '__main__':
     unittest.main()
