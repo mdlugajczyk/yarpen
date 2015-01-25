@@ -1,36 +1,47 @@
 from pyscm.tokenizer import Tokenizer
-
-__author__ = 'Marcin Dlugajczyk'
-
 import unittest
 
 
 class TokenizerTest(unittest.TestCase):
 
     def test_tokenizes_empty_input(self):
-        self.assertEqual(Tokenizer("   ").tokenize(), [])
+        t = Tokenizer("   ")
+        self.assertEqual(t.peek(), None)
 
     def test_tokenizes_symbols(self):
-        self.assertEqual(Tokenizer(" -asdf*   foo-!@$bar").tokenize(), [("-asdf*", "SYMBOL"),
-                                                                             ("foo-!@$bar", "SYMBOL")])
+        t = Tokenizer(" -asdf*   foo-!@$bar")
+        self.assertEqual(t.peek(), ("-asdf*", "SYMBOL"))
+        self.assertEqual(t.next(), ("foo-!@$bar", "SYMBOL"))
 
     def test_tokenizes_parenthesis(self):
-        self.assertEqual(Tokenizer(" ( foo (bar   )   fnord )").tokenize(),
-                         [("(", "LPAREN"), ("foo", "SYMBOL"), ("(", "LPAREN"),
-                          ("bar", "SYMBOL"), (")", "RPAREN"), ("fnord", "SYMBOL"), (")", "RPAREN")])
+        t = Tokenizer(" ( foo (bar   )   fnord )")
+        self.assertEqual(t.peek(), ("(", "LPAREN"))
+        self.assertEqual(t.next(), ("foo", "SYMBOL"))
+        self.assertEqual(t.next(), ("(", "LPAREN"))
+        self.assertEqual(t.next(), ("bar", "SYMBOL"))
+        self.assertEqual(t.next(), (")", "RPAREN"))
+        self.assertEqual(t.next(), ("fnord", "SYMBOL"))
+        self.assertEqual(t.next(), (")", "RPAREN"))
 
     def test_tokenizes_numbers(self):
-        self.assertEqual(Tokenizer("-10  3.459 10e-3 10e34").tokenize(),
-                         [("-10", "NUMBER"), ("3.459", "NUMBER"), ("10e-3", "NUMBER"), ("10e34", "NUMBER")])
+        t = Tokenizer("-10  3.459 10e-3 10e34")
+        self.assertEqual(t.peek(), ("-10", "NUMBER"))
+        self.assertEqual(t.next(), ("3.459", "NUMBER"))
+        self.assertEqual(t.next(), ("10e-3", "NUMBER"))
+        self.assertEqual(t.next(), ("10e34", "NUMBER"))
 
     def test_tokenizes_hash_symbol(self):
-        self.assertEqual(Tokenizer("foo #(bar))").tokenize(),
-                         [("foo", "SYMBOL"), ("#", "HASH"), ("(", "LPAREN"),
-                          ("bar", "SYMBOL"), (")", "RPAREN"), (")", "RPAREN")])
+        t = Tokenizer("foo #(bar))")
+        self.assertEqual(t.peek(), ("foo", "SYMBOL"))
+        self.assertEqual(t.next(), ("#", "HASH"))
+        self.assertEqual(t.next(), ("(", "LPAREN"))
+        self.assertEqual(t.next(), ("bar", "SYMBOL"))
+        self.assertEqual(t.next(), (")", "RPAREN"))
+        self.assertEqual(t.next(), (")", "RPAREN"))
 
     def test_tokenizes_quote(self):
-        self.assertEqual(Tokenizer("foo 'bar fnord").tokenize(),
-                         [("foo", "SYMBOL"), ("'", "QUOTE"), ("bar", "SYMBOL"), ("fnord", "SYMBOL")])
-        
-if __name__ == '__main__':
-    unittest.main()
+        t = Tokenizer("foo 'bar fnord")
+        self.assertEqual(t.peek(), ("foo", "SYMBOL"))
+        self.assertEqual(t.next(), ("'", "QUOTE"))
+        self.assertEqual(t.next(), ("bar", "SYMBOL"))
+        self.assertEqual(t.next(), ("fnord", "SYMBOL"))
