@@ -1,3 +1,5 @@
+from tokens import LParen, RParen, Quote, Boolean, Hash, Symbol, Number
+from tokens import NoTokens
 import re
 
 
@@ -6,19 +8,19 @@ class Tokenizer(object):
         # as per R5RS
         extended_alphabetic_character = r"""!|\$|%|&|\*|\+|-|\.|/|:
 |<|=|>|\?|@|\^|_|~"""
-        rules = [("\(", "LPAREN"),
-                 ("\)", "RPAREN"),
-                 ("'", "QUOTE"),
-                 ("-??((\d+\.\d*)|(\d+.e-??\d+)|\d)+", 'NUMBER'),
-                 ("#t|#f", 'BOOLEAN'),
-                 ('#', 'HASH'),
+        rules = [("\(", LParen),
+                 ("\)", RParen),
+                 ("'", Quote),
+                 ("-??((\d+\.\d*)|(\d+.e-??\d+)|\d)+", Number),
+                 ("#t|#f", Boolean),
+                 ('#', Hash),
                  ("({0}|[a-zA-Z]|\d)+".format(extended_alphabetic_character),
-                  'SYMBOL')]
+                  Symbol)]
         self._rules = [(re.compile(regex), name) for regex, name in rules]
         self._source = source.strip()
         self._position = 0
         self._whitespace_regex = re.compile("\s+")
-        self._current_token = None
+        self._current_token = NoTokens()
         self.next()
 
     def peek(self):
@@ -27,7 +29,7 @@ class Tokenizer(object):
     def next(self):
         if self._has_input():
             return self._next_token()
-        return None
+        return NoTokens()
 
     def _next_token(self):
         self._skip_whitespace()
@@ -35,7 +37,7 @@ class Tokenizer(object):
             result = regex.match(self._source[self._position:])
             if result:
                 token = self._consume_token(result)
-                self._current_token = token, name
+                self._current_token = name(token)
                 return self._current_token
         raise Exception("Error in input stream at position %s"
                         % self._position)

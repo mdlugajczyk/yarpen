@@ -1,3 +1,4 @@
+from pyscm.tokens import LParen, RParen, Quote, Hash, NoTokens
 from pyscm.tokenizer import Tokenizer
 import unittest
 
@@ -6,42 +7,42 @@ class TokenizerTest(unittest.TestCase):
 
     def test_tokenizes_empty_input(self):
         t = Tokenizer("   ")
-        self.assertEqual(t.peek(), None)
+        self.assertTrue(isinstance(t.peek(), NoTokens))
 
     def test_tokenizes_symbols(self):
         t = Tokenizer(" -asdf*   foo-!@$bar")
-        self.assertEqual(t.peek(), ("-asdf*", "SYMBOL"))
-        self.assertEqual(t.next(), ("foo-!@$bar", "SYMBOL"))
+        self.assertEqual(t.peek().symbol, "-asdf*")
+        self.assertEqual(t.next().symbol, "foo-!@$bar")
 
     def test_tokenizes_parenthesis(self):
         t = Tokenizer(" ( foo (bar   )   fnord )")
-        self.assertEqual(t.peek(), ("(", "LPAREN"))
-        self.assertEqual(t.next(), ("foo", "SYMBOL"))
-        self.assertEqual(t.next(), ("(", "LPAREN"))
-        self.assertEqual(t.next(), ("bar", "SYMBOL"))
-        self.assertEqual(t.next(), (")", "RPAREN"))
-        self.assertEqual(t.next(), ("fnord", "SYMBOL"))
-        self.assertEqual(t.next(), (")", "RPAREN"))
+        self.assertTrue(isinstance(t.peek(), LParen))
+        self.assertEqual(t.next().symbol, "foo")
+        self.assertTrue(isinstance(t.next(), LParen))
+        self.assertEqual(t.next().symbol, "bar")
+        self.assertTrue(isinstance(t.next(), RParen))
+        self.assertEqual(t.next().symbol, "fnord")
+        self.assertTrue(isinstance(t.next(), RParen))
 
     def test_tokenizes_numbers(self):
         t = Tokenizer("-10  3.459 10e-3 10e34")
-        self.assertEqual(t.peek(), ("-10", "NUMBER"))
-        self.assertEqual(t.next(), ("3.459", "NUMBER"))
-        self.assertEqual(t.next(), ("10e-3", "NUMBER"))
-        self.assertEqual(t.next(), ("10e34", "NUMBER"))
+        self.assertEqual(t.peek().number, "-10")
+        self.assertEqual(t.next().number, "3.459")
+        self.assertEqual(t.next().number, "10e-3")
+        self.assertEqual(t.next().number, "10e34")
 
     def test_tokenizes_hash_symbol(self):
         t = Tokenizer("foo #(bar))")
-        self.assertEqual(t.peek(), ("foo", "SYMBOL"))
-        self.assertEqual(t.next(), ("#", "HASH"))
-        self.assertEqual(t.next(), ("(", "LPAREN"))
-        self.assertEqual(t.next(), ("bar", "SYMBOL"))
-        self.assertEqual(t.next(), (")", "RPAREN"))
-        self.assertEqual(t.next(), (")", "RPAREN"))
+        self.assertEqual(t.peek().symbol, "foo")
+        self.assertTrue(isinstance(t.next(), Hash))
+        self.assertTrue(isinstance(t.next(), LParen))
+        self.assertEqual(t.next().symbol, "bar")
+        self.assertTrue(isinstance(t.next(), RParen))
+        self.assertTrue(isinstance(t.next(), RParen))
 
     def test_tokenizes_quote(self):
         t = Tokenizer("foo 'bar fnord")
-        self.assertEqual(t.peek(), ("foo", "SYMBOL"))
-        self.assertEqual(t.next(), ("'", "QUOTE"))
-        self.assertEqual(t.next(), ("bar", "SYMBOL"))
-        self.assertEqual(t.next(), ("fnord", "SYMBOL"))
+        self.assertEqual(t.peek().symbol, "foo")
+        self.assertTrue(isinstance(t.next(), Quote))
+        self.assertEqual(t.next().symbol, "bar")
+        self.assertEqual(t.next().symbol, "fnord")
