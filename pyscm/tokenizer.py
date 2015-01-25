@@ -8,6 +8,7 @@ class Tokenizer(object):
                  ("\)", "RPAREN"),
                  ("'", "QUOTE"),
                  ("-??((\d+\.\d*)|(\d+.e-??\d+)|\d)+", 'NUMBER'),
+                 ("#t|#f", 'BOOLEAN'),
                  ('#', 'HASH'),
                  ("({0}|[a-zA-Z]|\d)+".format(extended_alphabetic_character), 'SYMBOL')]
         self._rules = [(re.compile(regex), name) for regex, name in rules]
