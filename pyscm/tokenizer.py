@@ -29,7 +29,8 @@ class Tokenizer(object):
     def next(self):
         if self._has_input():
             return self._next_token()
-        return NoTokens()
+        self._current_token = NoTokens()
+        return self._current_token
 
     def _next_token(self):
         self._skip_whitespace()
