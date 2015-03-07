@@ -34,6 +34,7 @@ def run_tests():
         output = check_output("./pyscm_test")
         if output != test[2]:
             print("Test failed. Expected %s got %s" % (test[2], output))
+            break
 
 
 ### Constants
