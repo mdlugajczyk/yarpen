@@ -36,11 +36,14 @@ def run_tests():
             print("Test failed. Expected %s got %s" % (test[2], output))
             break
 
-add_group("Integers", [("1", "1\n"),
-                       ("44", "44\n"),
-                       ("3", "3\n"),
-                       ("-100", "-100\n"),
-                       ("0", "0\n"),
-                       ("-99999999", "-99999999\n")])
+add_group("Integers", [("1", "1"),
+                       ("44", "44"),
+                       ("3", "3"),
+                       ("-100", "-100"),
+                       ("0", "0"),
+                       ("-99999999", "-99999999")])
+
+add_group("Booleans", [("#t", "#t"),
+                       ("#f", "#f")])
 
 run_tests()

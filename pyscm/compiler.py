@@ -1,6 +1,6 @@
 from parser import Parser
 from emitter import Emitter
-from expression import PyScmNumber
+from expression import PyScmNumber, PyScmBoolean
 
 
 class Compiler(object):
@@ -22,6 +22,8 @@ class Compiler(object):
     def compile_expr(self, expr):
         if is_number(expr):
             self.compile_number(expr)
+        elif is_boolean(expr):
+            self.compile_boolean(expr)
         else:
             raise Exception("Unknow expression %s", expr)
 
@@ -29,6 +31,16 @@ class Compiler(object):
         repr = num.number << 2
         self.emitter.emit_constant(repr, "rax")
 
+    def compile_boolean(self, b):
+        if b.bool:
+            self.emitter.emit_constant(0x2F, "rax")
+        else:
+            self.emitter.emit_constant(0x6F, "rax")
+
 
 def is_number(expr):
     return isinstance(expr, PyScmNumber)
+
+
+def is_boolean(expr):
+    return isinstance(expr, PyScmBoolean)
