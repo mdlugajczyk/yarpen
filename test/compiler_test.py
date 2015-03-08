@@ -36,10 +36,11 @@ def run_tests():
             print("Test failed. Expected %s got %s" % (test[2], output))
             break
 
-
-### Constants
-add_group("Constants", [("1", "1\n"),
-                        ("44", "44\n"),
-                        ("3", "3\n")])
+add_group("Integers", [("1", "1\n"),
+                       ("44", "44\n"),
+                       ("3", "3\n"),
+                       ("-100", "-100\n"),
+                       ("0", "0\n"),
+                       ("-99999999", "-99999999\n")])
 
 run_tests()
