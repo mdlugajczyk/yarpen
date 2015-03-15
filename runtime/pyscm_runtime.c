@@ -13,8 +13,8 @@ static const int bool_t = 0x6F;
 
 void pyscm_display(pyscm_ptr expr) {
   if ((expr & num_mask) == num_tag) {
-    int res = ((int) expr) >> num_shift;
-    printf("%d", res);
+    long int res = ((long int) expr) >> num_shift;
+    printf("%ld", res);
   } else if (expr == bool_t) {
     printf("#t");
   } else if (expr == bool_f) {
