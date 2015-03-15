@@ -10,6 +10,7 @@ class Compiler(object):
     INT_SHIFT = 2
     BOOL_FALSE = 0x2F
     BOOL_TRUE = 0x6F
+    WORDSIZE = 8
 
     def __init__(self, source):
         self.parser = Parser(source)
@@ -25,15 +26,15 @@ class Compiler(object):
 
     def compile_exprs(self):
         for expr in self.exprs:
-            self.compile_expr(expr)
+            self.compile_expr(expr, -Compiler.WORDSIZE)
 
-    def compile_expr(self, expr):
+    def compile_expr(self, expr, stack_index):
         if is_number(expr):
             self.compile_number(expr)
         elif is_boolean(expr):
             self.compile_boolean(expr)
         elif self.is_primitive_function(expr):
-            self.compile_primitive_function(expr)
+            self.compile_primitive_function(expr, stack_index)
         else:
             raise Exception("Unknow expression %s", expr)
 
@@ -47,11 +48,11 @@ class Compiler(object):
         else:
             self.emitter.emit_constant(Compiler.BOOL_FALSE, "rax")
 
-    def compile_primitive_function(self, expr):
+    def compile_primitive_function(self, expr, stack_index):
         prim = expr.expressions[0].symbol
         if prim == "integer?":
             assert(len(expr.expressions) == 2)
-            self.compile_expr(expr.expressions[1])
+            self.compile_expr(expr.expressions[1], stack_index)
             self.emitter.emit_stmt("    and $%d, %%rax" % Compiler.INT_MASK)
             self.emitter.emit_stmt("    cmp $%d, %%rax" % Compiler.INT_TAG)
             self.emitter.emit_stmt("    sete %al")
