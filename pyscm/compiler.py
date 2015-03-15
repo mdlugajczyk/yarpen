@@ -51,20 +51,23 @@ class Compiler(object):
     def compile_primitive_function(self, expr, stack_index):
         prim = expr.expressions[0].symbol
         if prim == "integer?":
-            assert(len(expr.expressions) == 2)
-            self.compile_expr(expr.expressions[1], stack_index)
-            self.emitter.emit_stmt("    and $%d, %%rax" % Compiler.INT_MASK)
-            self.emitter.emit_stmt("    cmp $%d, %%rax" % Compiler.INT_TAG)
-            self.emitter.emit_stmt("    sete %al")
-            self.emitter.emit_stmt('    movzbq %al, %rax')
-            self.emitter.emit_stmt("    shl $%d, %%rax" % Compiler.BOOL_BIT)
-            self.emitter.emit_stmt("    or $%d, %%rax" % Compiler.BOOL_FALSE)
+            self.compile_prim_integer_p(expr, stack_index)
         else:
             raise Exception("Unknow primitive function %s", prim)
 
     def is_primitive_function(self, expr):
         return any(is_tagged_list(expr, prim)
                    for prim in self.primitive_functions)
+
+    def compile_prim_integer_p(self, expr, stack_index):
+        assert(len(expr.expressions) == 2)
+        self.compile_expr(expr.expressions[1], stack_index)
+        self.emitter.emit_stmt("    and $%d, %%rax" % Compiler.INT_MASK)
+        self.emitter.emit_stmt("    cmp $%d, %%rax" % Compiler.INT_TAG)
+        self.emitter.emit_stmt("    sete %al")
+        self.emitter.emit_stmt('    movzbq %al, %rax')
+        self.emitter.emit_stmt("    shl $%d, %%rax" % Compiler.BOOL_BIT)
+        self.emitter.emit_stmt("    or $%d, %%rax" % Compiler.BOOL_FALSE)
 
 
 def is_number(expr):
