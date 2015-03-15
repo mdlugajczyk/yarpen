@@ -15,7 +15,7 @@ class Compiler(object):
     def __init__(self, source):
         self.parser = Parser(source)
         self.emitter = Emitter()
-        self.primitive_functions = [PyScmSymbol("integer?")]
+        self.primitive_functions = {"integer?": self.compile_prim_integer_p}
 
     def compile(self):
         self.exprs = self.parser.parse()
@@ -50,13 +50,11 @@ class Compiler(object):
 
     def compile_primitive_function(self, expr, stack_index):
         prim = expr.expressions[0].symbol
-        if prim == "integer?":
-            self.compile_prim_integer_p(expr, stack_index)
-        else:
-            raise Exception("Unknow primitive function %s", prim)
+        compile_fun = self.primitive_functions[prim]
+        compile_fun(expr, stack_index)
 
     def is_primitive_function(self, expr):
-        return any(is_tagged_list(expr, prim)
+        return any(is_tagged_list(expr, PyScmSymbol(prim))
                    for prim in self.primitive_functions)
 
     def compile_prim_integer_p(self, expr, stack_index):
