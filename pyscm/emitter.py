@@ -20,3 +20,9 @@ pyscm_start:
 
     def emit_stmt(self, stmt):
         self.code += "%s\n" % stmt
+
+    def save_on_stack(self, stack_index):
+        self.emit_stmt("    movq %%rax, %d(%%rsp)" % stack_index)
+
+    def load_from_stack(self, stack_index):
+        self.emit_stmt("    movq  %d(%%rsp), %%rax" % stack_index)

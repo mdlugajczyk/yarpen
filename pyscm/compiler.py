@@ -15,7 +15,10 @@ class Compiler(object):
     def __init__(self, source):
         self.parser = Parser(source)
         self.emitter = Emitter()
-        self.primitive_functions = {"integer?": self.compile_prim_integer_p}
+        self.primitive_functions = {"integer?": self.compile_prim_integer_p,
+                                    "fx+": self.compile_prim_add,
+                                    "fx-": self.compile_prim_sub,
+                                    "fx*": self.compile_prim_mul}
 
     def compile(self):
         self.exprs = self.parser.parse()
@@ -66,6 +69,32 @@ class Compiler(object):
         self.emitter.emit_stmt('    movzbq %al, %rax')
         self.emitter.emit_stmt("    shl $%d, %%rax" % Compiler.BOOL_BIT)
         self.emitter.emit_stmt("    or $%d, %%rax" % Compiler.BOOL_FALSE)
+
+    def compile_prim_add(self, expr, stack_index):
+        assert(len(expr.expressions) == 3)
+        self.compile_expr(expr.expressions[1], stack_index)
+        self.emitter.save_on_stack(stack_index)
+        self.compile_expr(expr.expressions[2],
+                          stack_index - Compiler.WORDSIZE)
+        self.emitter.emit_stmt("   addq %s(%%rsp), %%rax" % stack_index)
+
+    def compile_prim_sub(self, expr, stack_index):
+        assert(len(expr.expressions) == 3)
+        self.compile_expr(expr.expressions[1], stack_index)
+        self.emitter.save_on_stack(stack_index)
+        self.compile_expr(expr.expressions[2],
+                          stack_index - Compiler.WORDSIZE)
+        self.emitter.emit_stmt("   subq %%rax, %s(%%rsp)" % stack_index)
+        self.emitter.load_from_stack(stack_index)
+
+    def compile_prim_mul(self, expr, stack_index):
+        assert(len(expr.expressions) == 3)
+        self.compile_expr(expr.expressions[1], stack_index)
+        self.emitter.save_on_stack(stack_index)
+        self.compile_expr(expr.expressions[2],
+                          stack_index - Compiler.WORDSIZE)
+        self.emitter.emit_stmt("   shr $%d, %%rax" % Compiler.INT_SHIFT)
+        self.emitter.emit_stmt("   mulq %d(%%rsp)" % stack_index)
 
 
 def is_number(expr):
