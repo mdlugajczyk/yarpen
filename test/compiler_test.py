@@ -46,4 +46,10 @@ add_group("Integers", [("1", "1"),
 add_group("Booleans", [("#t", "#t"),
                        ("#f", "#f")])
 
+add_group("Integer functions.",
+          [("(integer? 3)", "#t"),
+           ("(integer? -10)", "#t"),
+           ("(integer? #f)", "#f"),
+           ("(integer? #t)", "#f")])
+
 run_tests()

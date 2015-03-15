@@ -8,8 +8,8 @@ extern pyscm_ptr pyscm_start();
 static const int num_mask = 0x03;
 static const int num_tag  = 0x00;
 static const int num_shift = 2;
-static const int bool_t = 0x2F;
-static const int bool_f = 0x6F;
+static const int bool_f = 0x2F;
+static const int bool_t = 0x6F;
 
 void pyscm_display(pyscm_ptr expr) {
   if ((expr & num_mask) == num_tag) {

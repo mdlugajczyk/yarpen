@@ -17,6 +17,9 @@ class PyScmSymbol(object):
     def __init__(self, sym):
         self.symbol = sym
 
+    def __eq__(self, other):
+        return self.symbol == other.symbol
+
 
 class PyScmBoolean(object):
     def __init__(self, bool):

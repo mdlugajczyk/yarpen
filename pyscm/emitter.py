@@ -17,3 +17,6 @@ pyscm_start:
 
     def emit_constant(self, const, dst):
         self.code += "movq $%s, %%%s\n" % (const, dst)
+
+    def emit_stmt(self, stmt):
+        self.code += "%s\n" % stmt
