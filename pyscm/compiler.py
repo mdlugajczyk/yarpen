@@ -18,7 +18,8 @@ class Compiler(object):
         self.primitive_functions = {"integer?": self.compile_prim_integer_p,
                                     "fx+": self.compile_prim_add,
                                     "fx-": self.compile_prim_sub,
-                                    "fx*": self.compile_prim_mul}
+                                    "fx*": self.compile_prim_mul,
+                                    "zero?": self.compile_prim_zero_p}
 
     def compile(self):
         self.exprs = self.parser.parse()
@@ -42,8 +43,7 @@ class Compiler(object):
             raise Exception("Unknow expression %s", expr)
 
     def compile_number(self, num):
-        repr = num.number << Compiler.INT_SHIFT
-        self.emitter.emit_constant(repr, "rax")
+        self.emitter.emit_constant(self.int_representation(num.number), "rax")
 
     def compile_boolean(self, b):
         if b.bool:
@@ -95,6 +95,19 @@ class Compiler(object):
                           stack_index - Compiler.WORDSIZE)
         self.emitter.emit_stmt("   shr $%d, %%rax" % Compiler.INT_SHIFT)
         self.emitter.emit_stmt("   mulq %d(%%rsp)" % stack_index)
+
+    def compile_prim_zero_p(self, expr, stack_index):
+        assert(len(expr.expressions) == 2)
+        self.compile_expr(expr.expressions[1], stack_index)
+        self.emitter.emit_stmt("    cmp $%d, %%rax" %
+                               self.int_representation(0))
+        self.emitter.emit_stmt("    sete %al")
+        self.emitter.emit_stmt('    movzbq %al, %rax')
+        self.emitter.emit_stmt("    shl $%d, %%rax" % Compiler.BOOL_BIT)
+        self.emitter.emit_stmt("    or $%d, %%rax" % Compiler.BOOL_FALSE)
+
+    def int_representation(self, integer):
+        return integer << Compiler.INT_SHIFT
 
 
 def is_number(expr):
