@@ -19,7 +19,7 @@ def add_group(name, tests):
 
 
 def run_tests():
-    for test in tests:
+    for test in reversed(tests):
         print("Working on test: %s" % test[0])
         compiler = Compiler(test[1])
         code = compiler.compile()
@@ -71,5 +71,26 @@ add_group("Integer functions.",
            ("(zero? -1)", "#f"),
            ("(zero? #t)", "#f"),
            ("(zero? #f)", "#f")])
+
+
+add_group("Let expression.",
+          [("(let ((x 3)) x)", "3"),
+           ("(let ((x 3)) (let ((x 4)) x))", "4"),
+           ("(let ((x 3)) (let ((y (fx+ x x))) y))", "6"),
+           ("""(let ((x (fx+ 1 2)))
+                                 (let ((y (fx+ 3 4)))
+                                   (fx+ x y)))""", "10"),
+           ("""(let ((x (fx+ 1 2)))
+                                 (let ((y (fx+ 3 4)))
+                                   (fx- y x)))""", "4"),
+           ("""(let ((t (let ((t (let ((t (let ((t (fx+ 1 2))) t))) t))) t)))
+                   t)""",
+            "3"),
+           ("""(let ((x 12))
+                                 (let ((x (fx+ x x)))
+                                   (let ((x (fx+ x x)))
+                                     (let ((x (fx+ x x)))
+                                       (fx+ x x)))))""",
+            "192")])
 
 run_tests()
