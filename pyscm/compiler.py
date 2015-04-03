@@ -14,6 +14,7 @@ class Compiler(object):
     WORDSIZE = 8
 
     def __init__(self, source):
+        self.label_generator = LabelGenerator()
         self.parser = Parser(source)
         self.emitter = Emitter()
         self.primitive_functions = {"integer?": self.compile_prim_integer_p,
@@ -41,6 +42,8 @@ class Compiler(object):
             self.compile_boolean(expr)
         elif self.is_variable(expr):
             self.compile_variable_reference(expr, env, stack_index)
+        elif self.is_if(expr):
+            self.compile_if(expr, env, stack_index)
         elif self.is_primitive_function(expr):
             self.compile_primitive_function(expr, env, stack_index)
         elif self.is_let(expr):
@@ -142,6 +145,41 @@ class Compiler(object):
 
     def compile_variable_reference(self, expr, env, stack_index):
         self.emitter.load_from_stack(env.get_var(expr.symbol))
+
+    def is_if(self, expr):
+        print expr
+        return is_tagged_list(expr, PyScmSymbol("if"))
+
+    def if_condition(self, expr):
+        return expr.expressions[1]
+
+    def if_conseq(self, expr):
+        return expr.expressions[2]
+
+    def if_alternative(self, expr):
+        return expr.expressions[3]
+
+    def compile_if(self, expr, env, stack_index):
+        cond_false_label = self.label_generator.unique_label("false_branch")
+        if_end_label = self.label_generator.unique_label("if_end")
+        self.compile_expr(self.if_condition(expr), env, stack_index)
+        self.emitter.emit_stmt("    cmp $%d, %%rax" % Compiler.BOOL_FALSE)
+        self.emitter.emit_stmt("    je %s" % cond_false_label)
+        self.compile_expr(self.if_conseq(expr), env, stack_index)
+        self.emitter.emit_stmt("    jmp %s" % if_end_label)
+        self.emitter.emit_label(cond_false_label)
+        self.compile_expr(self.if_alternative(expr), env, stack_index)
+        self.emitter.emit_label(if_end_label)
+
+
+class LabelGenerator:
+    def __init__(self):
+        self.counter = 0
+
+    def unique_label(self, prefix):
+        label = prefix + ("__%d" % self.counter)
+        self.counter += 1
+        return label
 
 
 def is_number(expr):

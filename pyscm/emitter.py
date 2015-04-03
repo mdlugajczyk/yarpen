@@ -26,3 +26,6 @@ pyscm_start:
 
     def load_from_stack(self, stack_index):
         self.emit_stmt("    movq  %d(%%rsp), %%rax" % stack_index)
+
+    def emit_label(self, label):
+        self.emit_stmt("%s:" % label)

@@ -93,4 +93,14 @@ add_group("Let expression.",
                                        (fx+ x x)))))""",
             "192")])
 
+add_group("If",
+          [("(if #t 1 2)", "1"),
+           ("(if #f 1 2)", "2"),
+           ("(if 1 1 2)", "1"),
+           ("(if (if 0 #t #f) 1 2)", "1"),
+           ("""(if (let ((x #t) (y #f))
+                      (if #t x y))
+                   1
+                   2)""", "1")])
+
 run_tests()
