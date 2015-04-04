@@ -147,7 +147,6 @@ class Compiler(object):
         self.emitter.load_from_stack(env.get_var(expr.symbol))
 
     def is_if(self, expr):
-        print expr
         return is_tagged_list(expr, PyScmSymbol("if"))
 
     def if_condition(self, expr):
