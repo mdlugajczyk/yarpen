@@ -3,11 +3,14 @@ class Emitter(object):
         self.code = ""
 
     def entry_point_preamble(self, function_name):
-        self.code += """.text
-.globl %s
+        self.code += ".text\n"
+        self.function_header(function_name)
+
+    def function_header(self, function_name):
+        self.code += """.globl %s
 .type %s @function
-pyscm_start:
-""" % (function_name, function_name)
+%s:
+""" % (function_name, function_name, function_name)
 
     def emit(self):
         return self.code + "\n"
