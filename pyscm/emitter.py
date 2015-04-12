@@ -32,3 +32,9 @@ class Emitter(object):
 
     def emit_label(self, label):
         self.emit_stmt("%s:" % label)
+
+    def adjust_base(self, si):
+        if si > 0:
+            self.code += "    addq $%d, %%rsp\n" % si
+        else:
+            self.code += "    subq $%d, %%rsp\n" % (-si)
