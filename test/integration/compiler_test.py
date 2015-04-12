@@ -103,4 +103,16 @@ add_group("If",
                    1
                    2)""", "1")])
 
+
+add_group("lambda",
+          [("(let ((f (lambda (x) (fx+ x x)))) (f 2))", "4"),
+           ("((lambda (x) (fx+ x x)) 2)", "4"),
+           ("""(let ((f (lambda (x g) (g (g x))))
+                     (h (lambda (x) (fx+ x x))))
+                  (f 2 h))""", "8"),
+           ("""(let ((f (lambda (x) (fx+ x 1)))
+                     (g (lambda (x) (fx+ x x)))
+                     (h (lambda (x) (fx- x 1))))
+                  (h (g (f 10))))""", "21")])
+
 run_tests()

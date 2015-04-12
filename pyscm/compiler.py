@@ -46,8 +46,12 @@ class Compiler(object):
             self.compile_if(expr, env, stack_index)
         elif self.is_primitive_function(expr):
             self.compile_primitive_function(expr, env, stack_index)
+        elif self.is_lambda(expr):
+            self.compile_lambda(expr, env, stack_index)
         elif self.is_let(expr):
             self.compile_let(expr, env, stack_index)
+        elif self.is_application(expr):
+            return self.compile_application(expr, env, stack_index)
         else:
             raise Exception("Unknow expression %s", expr)
 
@@ -169,6 +173,56 @@ class Compiler(object):
         self.emitter.emit_label(cond_false_label)
         self.compile_expr(self.if_alternative(expr), env, stack_index)
         self.emitter.emit_label(if_end_label)
+
+    def is_lambda(self, expr):
+        return is_tagged_list(expr, PyScmSymbol("lambda"))
+
+    def lambda_args(self, expr):
+        return expr.expressions[1].expressions
+
+    def lambda_body(self, expr):
+        return expr.expressions[2]
+
+    def compile_lambda(self, expr, env, stack_index):
+        args = self.lambda_args(expr)
+        body = self.lambda_body(expr)
+        lambda_env, si = self.extend_env_for_lambda(args, env,
+                                                    -Compiler.WORDSIZE)
+        lambda_label = self.label_generator.unique_label("lambda")
+        lambda_end = self.label_generator.unique_label("lambda_end")
+        self.emitter.emit_stmt("    jmp %s" % lambda_end)
+        self.emitter.function_header(lambda_label)
+        self.compile_expr(body, lambda_env, si)
+        self.emitter.emit_stmt("    ret")
+        self.emitter.emit_label(lambda_end)
+        self.emitter.emit_stmt("   lea %s, %%rax" % lambda_label)
+
+    def extend_env_for_lambda(self, lambda_args, env, stack_index):
+        extended_env = env
+        for arg in lambda_args:
+            extended_env = extended_env.extend(arg.symbol, stack_index)
+            stack_index -= Compiler.WORDSIZE
+        return extended_env, stack_index
+
+    def is_application(self, expression):
+        return isinstance(expression, PyScmList)
+
+    def compile_application(self, expr, env, stack_index):
+        function = expr.expressions[0]
+        args = expr.expressions[1:]
+        self.compile_expr(function, env, stack_index)
+        self.emitter.save_on_stack(stack_index)
+        self.emit_application_arguments(args, env, stack_index)
+        self.emitter.load_from_stack(stack_index)
+        self.emitter.adjust_base(stack_index + Compiler.WORDSIZE)
+        self.emitter.emit_stmt('    call *%rax')
+        self.emitter.adjust_base(- (stack_index + Compiler.WORDSIZE))
+
+    def emit_application_arguments(self, args, env, stack_index):
+        for arg in args:
+            stack_index -= Compiler.WORDSIZE
+            self.compile_expr(arg, env, stack_index)
+            self.emitter.save_on_stack(stack_index)
 
 
 class LabelGenerator:
