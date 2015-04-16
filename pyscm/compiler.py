@@ -23,16 +23,36 @@ class Compiler(object):
                                     "fx*": self.compile_prim_mul,
                                     "zero?": self.compile_prim_zero_p}
 
+    def free_variables(self, expr):
+        def sub(a, b):
+            # Return a - b
+            return [x for x in a if x not in b]
+
+        if self.is_variable(expr):
+            return [expr]
+        elif self.is_if(expr):
+            return (self.free_variables(self.if_condition(expr))
+                    + self.free_variables(self.if_conseq(expr))
+                    + self.free_variables(self.if_alternative(expr)))
+        elif self.is_lambda(expr):
+            return sub(self.free_variables(self.lambda_body(expr)),
+                       self.lambda_args(expr))
+        elif self.is_application(expr):
+            fv = [self.free_variables(exp) for exp in expr.expressions]
+            return [x for y in fv for x in y]
+        else:
+            return []
+
     def compile(self):
-        self.exprs = self.parser.parse()
+        exprs = self.parser.parse()
         self.emitter.entry_point_preamble("pyscm_start")
-        self.compile_exprs()
+        self.compile_exprs(exprs)
         self.emitter.emit_ret()
         return self.emitter.emit()
 
-    def compile_exprs(self):
+    def compile_exprs(self, exprs):
         env = Environment()
-        for expr in self.exprs:
+        for expr in exprs:
             self.compile_expr(expr, env, -Compiler.WORDSIZE)
 
     def compile_expr(self, expr, env, stack_index):
