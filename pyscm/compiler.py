@@ -1,6 +1,7 @@
 from parser import Parser
 from emitter import Emitter
 from expression import PyScmNumber, PyScmBoolean, PyScmList, PyScmSymbol
+from expression import PyScmClosure, PyScmFreeVarRef
 from environment import Environment
 
 
@@ -23,11 +24,11 @@ class Compiler(object):
                                     "fx*": self.compile_prim_mul,
                                     "zero?": self.compile_prim_zero_p}
 
-    def free_variables(self, expr):
-        def sub(a, b):
-            # Return a - b
-            return [x for x in a if x not in b]
+    def sub(self, a, b):
+        # Return a - b
+        return [x for x in a if x not in b]
 
+    def free_variables(self, expr):
         if self.is_variable(expr):
             return [expr]
         elif self.is_if(expr):
@@ -35,8 +36,8 @@ class Compiler(object):
                     + self.free_variables(self.if_conseq(expr))
                     + self.free_variables(self.if_alternative(expr)))
         elif self.is_lambda(expr):
-            return sub(self.free_variables(self.lambda_body(expr)),
-                       self.lambda_args(expr))
+            return self.sub(self.free_variables(self.lambda_body(expr)),
+                            self.lambda_args(expr))
         elif self.is_application(expr):
             fv = [self.free_variables(exp) for exp in expr.expressions]
             return [x for y in fv for x in y]
@@ -45,10 +46,50 @@ class Compiler(object):
 
     def compile(self):
         exprs = self.parser.parse()
+        closure_converted = self.closure_convert(exprs)
         self.emitter.entry_point_preamble("pyscm_start")
-        self.compile_exprs(exprs)
+        self.compile_exprs(closure_converted)
         self.emitter.emit_ret()
         return self.emitter.emit()
+
+    def closure_convert_lambda(self, exp):
+        free_variables = self.free_variables(exp)
+        converted_body = self.closure_convert(self.lambda_body(exp))
+        return PyScmClosure(self.substitute(converted_body, free_variables),
+                            free_variables,
+                            self.lambda_args(exp))
+
+    def substitute(self, exp, free_variables):
+        if is_number(exp) or is_boolean(exp):
+            return exp
+        elif self.is_variable(exp):
+            if exp in free_variables:
+                return PyScmFreeVarRef(exp.symbol)
+            else:
+                return exp
+        elif self.is_lambda(exp):
+            lambda_body = self.substitute(self.lambda_body(exp),
+                                          self.sub(free_variables,
+                                                   self.lambda_args(exp)))
+            return PyScmList([PyScmSymbol("lambda"),
+                              PyScmList(self.lambda_args(exp)),
+                              lambda_body])
+        elif self.is_application(exp):
+            return PyScmList([self.substitute(e, free_variables)
+                              for e in exp.expressions])
+        else:
+            return exp
+
+    def closure_convert(self, exp):
+        if is_number(exp) or is_boolean(exp) or self.is_variable(exp):
+            return exp
+        elif self.is_lambda(exp):
+            return self.closure_convert_lambda(exp)
+        elif self.is_application(exp):
+            return PyScmList([self.closure_convert(e)
+                              for e in exp.expressions])
+        else:
+            return exp
 
     def compile_exprs(self, exprs):
         env = Environment()
@@ -166,6 +207,9 @@ class Compiler(object):
 
     def is_variable(self, expr):
         return type(expr) == PyScmSymbol
+
+    def is_free_var_reference(self, expr):
+        return type(expr) == PyScmFreeVarRef
 
     def compile_variable_reference(self, expr, env, stack_index):
         self.emitter.load_from_stack(env.get_var(expr.symbol))

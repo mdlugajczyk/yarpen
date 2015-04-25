@@ -112,7 +112,7 @@ add_group("lambda",
                   (f 2 h))""", "8"),
            ("""(let ((f (lambda (x) (fx+ x 1)))
                      (g (lambda (x) (fx+ x x)))
-                     (h (lambda (x) (fx- x 1)))
+                     (h (lambda (x) (fx- x 1))))
                   (h (g (f 10))))""", "21")])
 
 run_tests()

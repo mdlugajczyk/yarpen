@@ -10,6 +10,8 @@ static const int num_tag  = 0x00;
 static const int num_shift = 2;
 static const int bool_f = 0x2F;
 static const int bool_t = 0x6F;
+static const int object_mask = 0x07;
+static const int closure_tag = 0x03;
 
 void pyscm_display(pyscm_ptr expr) {
   if ((expr & num_mask) == num_tag) {
@@ -19,6 +21,10 @@ void pyscm_display(pyscm_ptr expr) {
     printf("#t");
   } else if (expr == bool_f) {
     printf("#f");
+  } else if ((expr & object_mask) == closure_tag) {
+    printf("closure");
+  } else {
+    printf("#<unknown 0x%08llx>", expr);
   }
 }
 
