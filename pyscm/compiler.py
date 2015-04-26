@@ -3,9 +3,10 @@ from emitter import Emitter
 from expression import PyScmSymbol
 from expression import is_number, is_boolean, is_lambda
 from expression import lambda_body, is_application, is_variable, lambda_args
-from expression import is_tagged_list, if_condition, if_conseq, is_let, is_if
+from expression import is_tagged_list, if_condition, if_conseq, is_if
 from expression import if_alternative, let_body, let_bindings
 from environment import Environment
+from desugar import desugar
 from closure_conversion import closure_convert
 
 
@@ -30,7 +31,8 @@ class Compiler(object):
 
     def compile(self):
         exprs = self.parser.parse()
-        closure_converted = closure_convert(exprs)
+        desugared_exprs = [desugar(exp) for exp in exprs]
+        closure_converted = [closure_convert(exp) for exp in desugared_exprs]
         self.emitter.entry_point_preamble("pyscm_start")
         self.compile_exprs(closure_converted)
         self.emitter.emit_ret()
@@ -54,8 +56,6 @@ class Compiler(object):
             self.compile_primitive_function(expr, env, stack_index)
         elif is_lambda(expr):
             self.compile_lambda(expr, env, stack_index)
-        elif is_let(expr):
-            self.compile_let(expr, env, stack_index)
         elif is_application(expr):
             return self.compile_application(expr, env, stack_index)
         else:

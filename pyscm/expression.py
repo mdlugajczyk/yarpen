@@ -122,7 +122,7 @@ def make_lambda(args, body):
 
 
 def is_application(expression):
-        return isinstance(expression, PyScmList)
+    return isinstance(expression, PyScmList)
 
 
 def is_variable(expr):
@@ -131,6 +131,10 @@ def is_variable(expr):
 
 def is_if(expr):
     return is_tagged_list(expr, PyScmSymbol("if"))
+
+
+def make_if(cond, cons, alter):
+    return PyScmList([PyScmSymbol("if"), cond, cons, alter])
 
 
 def is_let(expr):
