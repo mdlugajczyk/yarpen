@@ -35,9 +35,9 @@ class Compiler(object):
             return (self.free_variables(self.if_condition(expr))
                     + self.free_variables(self.if_conseq(expr))
                     + self.free_variables(self.if_alternative(expr)))
-        elif self.is_lambda(expr):
-            return self.sub(self.free_variables(self.lambda_body(expr)),
-                            self.lambda_args(expr))
+        elif is_lambda(expr):
+            return self.sub(self.free_variables(lambda_body(expr)),
+                            lambda_args(expr))
         elif self.is_application(expr):
             fv = [self.free_variables(exp) for exp in expr.expressions]
             return [x for y in fv for x in y]
@@ -54,10 +54,10 @@ class Compiler(object):
 
     def closure_convert_lambda(self, exp):
         free_variables = self.free_variables(exp)
-        converted_body = self.closure_convert(self.lambda_body(exp))
+        converted_body = self.closure_convert(lambda_body(exp))
         return PyScmClosure(self.substitute(converted_body, free_variables),
                             free_variables,
-                            self.lambda_args(exp))
+                            lambda_args(exp))
 
     def substitute(self, exp, free_variables):
         if is_number(exp) or is_boolean(exp):
@@ -67,12 +67,12 @@ class Compiler(object):
                 return PyScmFreeVarRef(exp.symbol)
             else:
                 return exp
-        elif self.is_lambda(exp):
-            lambda_body = self.substitute(self.lambda_body(exp),
+        elif is_lambda(exp):
+            lambda_body = self.substitute(lambda_body(exp),
                                           self.sub(free_variables,
-                                                   self.lambda_args(exp)))
+                                                   lambda_args(exp)))
             return PyScmList([PyScmSymbol("lambda"),
-                              PyScmList(self.lambda_args(exp)),
+                              PyScmList(lambda_args(exp)),
                               lambda_body])
         elif self.is_application(exp):
             return PyScmList([self.substitute(e, free_variables)
@@ -83,7 +83,7 @@ class Compiler(object):
     def closure_convert(self, exp):
         if is_number(exp) or is_boolean(exp) or self.is_variable(exp):
             return exp
-        elif self.is_lambda(exp):
+        elif is_lambda(exp):
             return self.closure_convert_lambda(exp)
         elif self.is_application(exp):
             return PyScmList([self.closure_convert(e)
@@ -107,7 +107,7 @@ class Compiler(object):
             self.compile_if(expr, env, stack_index)
         elif self.is_primitive_function(expr):
             self.compile_primitive_function(expr, env, stack_index)
-        elif self.is_lambda(expr):
+        elif is_lambda(expr):
             self.compile_lambda(expr, env, stack_index)
         elif self.is_let(expr):
             self.compile_let(expr, env, stack_index)
@@ -238,18 +238,9 @@ class Compiler(object):
         self.compile_expr(self.if_alternative(expr), env, stack_index)
         self.emitter.emit_label(if_end_label)
 
-    def is_lambda(self, expr):
-        return is_tagged_list(expr, PyScmSymbol("lambda"))
-
-    def lambda_args(self, expr):
-        return expr.expressions[1].expressions
-
-    def lambda_body(self, expr):
-        return expr.expressions[2]
-
     def compile_lambda(self, expr, env, stack_index):
-        args = self.lambda_args(expr)
-        body = self.lambda_body(expr)
+        args = lambda_args(expr)
+        body = lambda_body(expr)
         lambda_env, si = self.extend_env_for_lambda(args, env,
                                                     -Compiler.WORDSIZE)
         lambda_label = self.label_generator.unique_label("lambda")
@@ -306,6 +297,17 @@ def is_number(expr):
 def is_boolean(expr):
     return isinstance(expr, PyScmBoolean)
 
+
+def is_lambda(expr):
+    return is_tagged_list(expr, PyScmSymbol("lambda"))
+
+
+def lambda_args(expr):
+    return expr.expressions[1].expressions
+
+
+def lambda_body(expr):
+    return expr.expressions[2]
 
 def is_tagged_list(expr, tag):
     return (isinstance(expr, PyScmList) and len(expr.expressions) > 0
