@@ -38,7 +38,7 @@ class Compiler(object):
         elif is_lambda(expr):
             return self.sub(self.free_variables(lambda_body(expr)),
                             lambda_args(expr))
-        elif self.is_application(expr):
+        elif is_application(expr):
             fv = [self.free_variables(exp) for exp in expr.expressions]
             return [x for y in fv for x in y]
         else:
@@ -74,7 +74,7 @@ class Compiler(object):
             return PyScmList([PyScmSymbol("lambda"),
                               PyScmList(lambda_args(exp)),
                               lambda_body])
-        elif self.is_application(exp):
+        elif is_application(exp):
             return PyScmList([self.substitute(e, free_variables)
                               for e in exp.expressions])
         else:
@@ -85,7 +85,7 @@ class Compiler(object):
             return exp
         elif is_lambda(exp):
             return self.closure_convert_lambda(exp)
-        elif self.is_application(exp):
+        elif is_application(exp):
             return PyScmList([self.closure_convert(e)
                               for e in exp.expressions])
         else:
@@ -111,7 +111,7 @@ class Compiler(object):
             self.compile_lambda(expr, env, stack_index)
         elif self.is_let(expr):
             self.compile_let(expr, env, stack_index)
-        elif self.is_application(expr):
+        elif is_application(expr):
             return self.compile_application(expr, env, stack_index)
         else:
             raise Exception("Unknow expression %s", expr)
@@ -259,9 +259,6 @@ class Compiler(object):
             stack_index -= Compiler.WORDSIZE
         return extended_env, stack_index
 
-    def is_application(self, expression):
-        return isinstance(expression, PyScmList)
-
     def compile_application(self, expr, env, stack_index):
         function = expr.expressions[0]
         args = expr.expressions[1:]
@@ -308,6 +305,11 @@ def lambda_args(expr):
 
 def lambda_body(expr):
     return expr.expressions[2]
+
+
+def is_application(expression):
+        return isinstance(expression, PyScmList)
+
 
 def is_tagged_list(expr, tag):
     return (isinstance(expr, PyScmList) and len(expr.expressions) > 0
