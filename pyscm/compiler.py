@@ -70,12 +70,12 @@ class Compiler(object):
             else:
                 return exp
         elif is_lambda(exp):
-            lambda_body = self.substitute(lambda_body(exp),
-                                          self.sub(free_variables,
-                                                   lambda_args(exp)))
+            lambda_body_exp = self.substitute(lambda_body(exp),
+                                              self.sub(free_variables,
+                                                       lambda_args(exp)))
             return PyScmList([PyScmSymbol("lambda"),
                               PyScmList(lambda_args(exp)),
-                              lambda_body])
+                              lambda_body_exp])
         elif is_application(exp):
             return PyScmList([self.substitute(e, free_variables)
                               for e in exp.expressions])
