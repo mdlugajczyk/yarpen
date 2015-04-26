@@ -109,7 +109,7 @@ class Compiler(object):
             self.compile_primitive_function(expr, env, stack_index)
         elif is_lambda(expr):
             self.compile_lambda(expr, env, stack_index)
-        elif self.is_let(expr):
+        elif is_let(expr):
             self.compile_let(expr, env, stack_index)
         elif is_application(expr):
             return self.compile_application(expr, env, stack_index)
@@ -182,9 +182,6 @@ class Compiler(object):
 
     def int_representation(self, integer):
         return integer << Compiler.INT_SHIFT
-
-    def is_let(self, expr):
-        return is_tagged_list(expr, PyScmSymbol("let"))
 
     def let_bindings(self, expr):
         assert(type(expr.expressions[1]) == PyScmList)
@@ -308,6 +305,10 @@ def is_variable(expr):
 
 def is_if(expr):
     return is_tagged_list(expr, PyScmSymbol("if"))
+
+
+def is_let(expr):
+    return is_tagged_list(expr, PyScmSymbol("let"))
 
 
 def is_tagged_list(expr, tag):
