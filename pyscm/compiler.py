@@ -1,10 +1,12 @@
 from parser import Parser
 from emitter import Emitter
-from expression import PyScmList, PyScmSymbol, PyScmClosure, PyScmFreeVarRef
-from expression import is_number, is_boolean, is_lambda, lambda_args
-from expression import lambda_body, is_application, is_variable, is_if
-from expression import is_let, is_tagged_list
+from expression import PyScmList, PyScmSymbol
+from expression import is_number, is_boolean, is_lambda
+from expression import lambda_body, is_application, is_variable, lambda_args
+from expression import is_tagged_list, if_condition, if_conseq, is_let, is_if
+from expression import if_alternative
 from environment import Environment
+from closure_conversion import closure_convert
 
 
 class Compiler(object):
@@ -26,72 +28,13 @@ class Compiler(object):
                                     "fx*": self.compile_prim_mul,
                                     "zero?": self.compile_prim_zero_p}
 
-    def sub(self, a, b):
-        # Return a - b
-        return [x for x in a if x not in b]
-
-    def free_variables(self, expr):
-        if is_variable(expr):
-            return [expr]
-        elif is_if(expr):
-            return (self.free_variables(self.if_condition(expr))
-                    + self.free_variables(self.if_conseq(expr))
-                    + self.free_variables(self.if_alternative(expr)))
-        elif is_lambda(expr):
-            return self.sub(self.free_variables(lambda_body(expr)),
-                            lambda_args(expr))
-        elif is_application(expr):
-            fv = [self.free_variables(exp) for exp in expr.expressions]
-            return [x for y in fv for x in y]
-        else:
-            return []
-
     def compile(self):
         exprs = self.parser.parse()
-        closure_converted = self.closure_convert(exprs)
+        closure_converted = closure_convert(exprs)
         self.emitter.entry_point_preamble("pyscm_start")
         self.compile_exprs(closure_converted)
         self.emitter.emit_ret()
         return self.emitter.emit()
-
-    def closure_convert_lambda(self, exp):
-        free_variables = self.free_variables(exp)
-        converted_body = self.closure_convert(lambda_body(exp))
-        return PyScmClosure(self.substitute(converted_body, free_variables),
-                            free_variables,
-                            lambda_args(exp))
-
-    def substitute(self, exp, free_variables):
-        if is_number(exp) or is_boolean(exp):
-            return exp
-        elif is_variable(exp):
-            if exp in free_variables:
-                return PyScmFreeVarRef(exp.symbol)
-            else:
-                return exp
-        elif is_lambda(exp):
-            lambda_body_exp = self.substitute(lambda_body(exp),
-                                              self.sub(free_variables,
-                                                       lambda_args(exp)))
-            return PyScmList([PyScmSymbol("lambda"),
-                              PyScmList(lambda_args(exp)),
-                              lambda_body_exp])
-        elif is_application(exp):
-            return PyScmList([self.substitute(e, free_variables)
-                              for e in exp.expressions])
-        else:
-            return exp
-
-    def closure_convert(self, exp):
-        if is_number(exp) or is_boolean(exp) or is_variable(exp):
-            return exp
-        elif is_lambda(exp):
-            return self.closure_convert_lambda(exp)
-        elif is_application(exp):
-            return PyScmList([self.closure_convert(e)
-                              for e in exp.expressions])
-        else:
-            return exp
 
     def compile_exprs(self, exprs):
         env = Environment()
@@ -207,25 +150,16 @@ class Compiler(object):
     def compile_variable_reference(self, expr, env, stack_index):
         self.emitter.load_from_stack(env.get_var(expr.symbol))
 
-    def if_condition(self, expr):
-        return expr.expressions[1]
-
-    def if_conseq(self, expr):
-        return expr.expressions[2]
-
-    def if_alternative(self, expr):
-        return expr.expressions[3]
-
     def compile_if(self, expr, env, stack_index):
         cond_false_label = self.label_generator.unique_label("false_branch")
         if_end_label = self.label_generator.unique_label("if_end")
-        self.compile_expr(self.if_condition(expr), env, stack_index)
+        self.compile_expr(if_condition(expr), env, stack_index)
         self.emitter.emit_stmt("    cmp $%d, %%rax" % Compiler.BOOL_FALSE)
         self.emitter.emit_stmt("    je %s" % cond_false_label)
-        self.compile_expr(self.if_conseq(expr), env, stack_index)
+        self.compile_expr(if_conseq(expr), env, stack_index)
         self.emitter.emit_stmt("    jmp %s" % if_end_label)
         self.emitter.emit_label(cond_false_label)
-        self.compile_expr(self.if_alternative(expr), env, stack_index)
+        self.compile_expr(if_alternative(expr), env, stack_index)
         self.emitter.emit_label(if_end_label)
 
     def compile_lambda(self, expr, env, stack_index):

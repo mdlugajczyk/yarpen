@@ -133,6 +133,18 @@ def is_let(expr):
     return is_tagged_list(expr, PyScmSymbol("let"))
 
 
+def if_condition(expr):
+        return expr.expressions[1]
+
+
+def if_conseq(expr):
+        return expr.expressions[2]
+
+
+def if_alternative(expr):
+        return expr.expressions[3]
+
+
 def is_tagged_list(expr, tag):
     return (isinstance(expr, PyScmList) and len(expr.expressions) > 0
             and expr.expressions[0] == tag)
