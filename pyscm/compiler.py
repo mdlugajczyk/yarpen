@@ -31,7 +31,7 @@ class Compiler(object):
     def free_variables(self, expr):
         if is_variable(expr):
             return [expr]
-        elif self.is_if(expr):
+        elif is_if(expr):
             return (self.free_variables(self.if_condition(expr))
                     + self.free_variables(self.if_conseq(expr))
                     + self.free_variables(self.if_alternative(expr)))
@@ -103,7 +103,7 @@ class Compiler(object):
             self.compile_boolean(expr)
         elif is_variable(expr):
             self.compile_variable_reference(expr, env, stack_index)
-        elif self.is_if(expr):
+        elif is_if(expr):
             self.compile_if(expr, env, stack_index)
         elif self.is_primitive_function(expr):
             self.compile_primitive_function(expr, env, stack_index)
@@ -208,9 +208,6 @@ class Compiler(object):
     def compile_variable_reference(self, expr, env, stack_index):
         self.emitter.load_from_stack(env.get_var(expr.symbol))
 
-    def is_if(self, expr):
-        return is_tagged_list(expr, PyScmSymbol("if"))
-
     def if_condition(self, expr):
         return expr.expressions[1]
 
@@ -307,6 +304,10 @@ def is_application(expression):
 
 def is_variable(expr):
     return type(expr) == PyScmSymbol
+
+
+def is_if(expr):
+    return is_tagged_list(expr, PyScmSymbol("if"))
 
 
 def is_tagged_list(expr, tag):
