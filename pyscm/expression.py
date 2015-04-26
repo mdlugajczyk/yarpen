@@ -95,3 +95,44 @@ class PyScmFreeVarRef(object):
 
     def __repr__(self):
         return "FreeVarReference %s" % self.free_var
+
+
+def is_number(expr):
+    return isinstance(expr, PyScmNumber)
+
+
+def is_boolean(expr):
+    return isinstance(expr, PyScmBoolean)
+
+
+def is_lambda(expr):
+    return is_tagged_list(expr, PyScmSymbol("lambda"))
+
+
+def lambda_args(expr):
+    return expr.expressions[1].expressions
+
+
+def lambda_body(expr):
+    return expr.expressions[2]
+
+
+def is_application(expression):
+        return isinstance(expression, PyScmList)
+
+
+def is_variable(expr):
+    return type(expr) == PyScmSymbol
+
+
+def is_if(expr):
+    return is_tagged_list(expr, PyScmSymbol("if"))
+
+
+def is_let(expr):
+    return is_tagged_list(expr, PyScmSymbol("let"))
+
+
+def is_tagged_list(expr, tag):
+    return (isinstance(expr, PyScmList) and len(expr.expressions) > 0
+            and expr.expressions[0] == tag)
