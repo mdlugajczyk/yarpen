@@ -117,6 +117,10 @@ def lambda_body(expr):
     return expr.expressions[2]
 
 
+def make_lambda(args, body):
+    return PyScmList([PyScmSymbol("lambda"), PyScmList(args), body])
+
+
 def is_application(expression):
         return isinstance(expression, PyScmList)
 

@@ -1,7 +1,7 @@
-from expression import PyScmFreeVarRef, PyScmList, PyScmSymbol, PyScmClosure
+from expression import PyScmFreeVarRef, PyScmList, PyScmClosure
 from expression import is_number, is_boolean, is_lambda, lambda_args, is_if
 from expression import lambda_body, is_application, is_variable, if_condition
-from expression import if_conseq, if_alternative
+from expression import if_conseq, if_alternative, make_lambda
 
 
 def closure_convert(exp):
@@ -36,9 +36,7 @@ def substitute(exp, free_vars):
         lambda_body_exp = substitute(lambda_body(exp),
                                      sub(free_vars,
                                          lambda_args(exp)))
-        return PyScmList([PyScmSymbol("lambda"),
-                          PyScmList(lambda_args(exp)),
-                          lambda_body_exp])
+        return make_lambda(lambda_args(exp), lambda_body_exp)
     elif is_application(exp):
         return PyScmList([substitute(e, free_vars)
                           for e in exp.expressions])
