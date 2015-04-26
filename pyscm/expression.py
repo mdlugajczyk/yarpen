@@ -137,6 +137,15 @@ def is_let(expr):
     return is_tagged_list(expr, PyScmSymbol("let"))
 
 
+def let_bindings(expr):
+    assert(type(expr.expressions[1]) == PyScmList)
+    return expr.expressions[1].expressions
+
+
+def let_body(expr):
+    return expr.expressions[2]
+
+
 def if_condition(expr):
         return expr.expressions[1]
 

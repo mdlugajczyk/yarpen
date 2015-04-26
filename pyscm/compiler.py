@@ -1,10 +1,10 @@
 from parser import Parser
 from emitter import Emitter
-from expression import PyScmList, PyScmSymbol
+from expression import PyScmSymbol
 from expression import is_number, is_boolean, is_lambda
 from expression import lambda_body, is_application, is_variable, lambda_args
 from expression import is_tagged_list, if_condition, if_conseq, is_let, is_if
-from expression import if_alternative
+from expression import if_alternative, let_body, let_bindings
 from environment import Environment
 from closure_conversion import closure_convert
 
@@ -128,24 +128,17 @@ class Compiler(object):
     def int_representation(self, integer):
         return integer << Compiler.INT_SHIFT
 
-    def let_bindings(self, expr):
-        assert(type(expr.expressions[1]) == PyScmList)
-        return expr.expressions[1].expressions
-
-    def let_body(self, expr):
-        return expr.expressions[2]
-
     def compile_let(self, expr, env, stack_index):
         si = stack_index
         extended_env = env
-        for binding in self.let_bindings(expr):
+        for binding in let_bindings(expr):
             var = binding.expressions[0]
             val = binding.expressions[1]
             self.compile_expr(val, env, si)
             self.emitter.save_on_stack(si)
             extended_env = extended_env.extend(var.symbol, si)
             si -= Compiler.WORDSIZE
-        self.compile_expr(self.let_body(expr), extended_env, si)
+        self.compile_expr(let_body(expr), extended_env, si)
 
     def compile_variable_reference(self, expr, env, stack_index):
         self.emitter.load_from_stack(env.get_var(expr.symbol))
