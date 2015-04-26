@@ -29,7 +29,7 @@ class Compiler(object):
         return [x for x in a if x not in b]
 
     def free_variables(self, expr):
-        if self.is_variable(expr):
+        if is_variable(expr):
             return [expr]
         elif self.is_if(expr):
             return (self.free_variables(self.if_condition(expr))
@@ -62,7 +62,7 @@ class Compiler(object):
     def substitute(self, exp, free_variables):
         if is_number(exp) or is_boolean(exp):
             return exp
-        elif self.is_variable(exp):
+        elif is_variable(exp):
             if exp in free_variables:
                 return PyScmFreeVarRef(exp.symbol)
             else:
@@ -81,7 +81,7 @@ class Compiler(object):
             return exp
 
     def closure_convert(self, exp):
-        if is_number(exp) or is_boolean(exp) or self.is_variable(exp):
+        if is_number(exp) or is_boolean(exp) or is_variable(exp):
             return exp
         elif is_lambda(exp):
             return self.closure_convert_lambda(exp)
@@ -101,7 +101,7 @@ class Compiler(object):
             self.compile_number(expr)
         elif is_boolean(expr):
             self.compile_boolean(expr)
-        elif self.is_variable(expr):
+        elif is_variable(expr):
             self.compile_variable_reference(expr, env, stack_index)
         elif self.is_if(expr):
             self.compile_if(expr, env, stack_index)
@@ -205,12 +205,6 @@ class Compiler(object):
             si -= Compiler.WORDSIZE
         self.compile_expr(self.let_body(expr), extended_env, si)
 
-    def is_variable(self, expr):
-        return type(expr) == PyScmSymbol
-
-    def is_free_var_reference(self, expr):
-        return type(expr) == PyScmFreeVarRef
-
     def compile_variable_reference(self, expr, env, stack_index):
         self.emitter.load_from_stack(env.get_var(expr.symbol))
 
@@ -309,6 +303,10 @@ def lambda_body(expr):
 
 def is_application(expression):
         return isinstance(expression, PyScmList)
+
+
+def is_variable(expr):
+    return type(expr) == PyScmSymbol
 
 
 def is_tagged_list(expr, tag):
