@@ -162,6 +162,10 @@ def if_alternative(expr):
         return expr.expressions[3]
 
 
+def is_closure(expr):
+    return is_tagged_list(expr, PyScmSymbol("closure"))
+
+
 def is_tagged_list(expr, tag):
     return (isinstance(expr, PyScmList) and len(expr.expressions) > 0
             and expr.expressions[0] == tag)
