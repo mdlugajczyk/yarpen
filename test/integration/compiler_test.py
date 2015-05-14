@@ -33,7 +33,7 @@ def run_tests():
 
         output = check_output("./pyscm_test")
         if output != test[2]:
-            print("Test failed. Expected %s got %s" % (test[2], output))
+            print("Test failed. Expected %s got %s\nCode: %s" % (test[2], output, test[1]))
             break
 
 add_group("Integers", [("1", "1"),
