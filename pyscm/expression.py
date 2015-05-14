@@ -129,6 +129,9 @@ def is_variable(expr):
     return type(expr) == PyScmSymbol
 
 
+def is_free_var_reference(expr):
+    return isinstance(expr, PyScmFreeVarRef)
+
 def is_if(expr):
     return is_tagged_list(expr, PyScmSymbol("if"))
 
@@ -163,7 +166,7 @@ def if_alternative(expr):
 
 
 def is_closure(expr):
-    return is_tagged_list(expr, PyScmSymbol("closure"))
+    return isinstance(expr, PyScmClosure)
 
 
 def is_tagged_list(expr, tag):

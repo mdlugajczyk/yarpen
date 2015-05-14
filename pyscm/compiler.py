@@ -1,7 +1,7 @@
 from parser import Parser
 from emitter import Emitter
 from expression import PyScmSymbol
-from expression import is_number, is_boolean, is_closure
+from expression import is_number, is_boolean, is_closure, is_free_var_reference
 from expression import lambda_body, is_application, is_variable, lambda_args
 from expression import is_tagged_list, if_condition, if_conseq, is_if
 from expression import if_alternative, let_body, let_bindings
@@ -52,14 +52,14 @@ class Compiler(object):
             self.compile_number(expr)
         elif is_boolean(expr):
             self.compile_boolean(expr)
-        elif is_variable(expr):
+        elif is_variable(expr) or is_free_var_reference(expr):
             self.compile_variable_reference(expr, env, stack_index)
         elif is_if(expr):
             self.compile_if(expr, env, stack_index)
         elif self.is_primitive_function(expr):
             self.compile_primitive_function(expr, env, stack_index)
         elif is_closure(expr):
-            self.compile_lambda(expr, env, stack_index)
+            self.compile_closure(expr, env, stack_index)
         elif is_application(expr):
             return self.compile_application(expr, env, stack_index)
         else:
@@ -159,23 +159,23 @@ class Compiler(object):
         self.compile_expr(if_alternative(expr), env, stack_index)
         self.emitter.emit_label(if_end_label)
 
-    def compile_lambda(self, expr, env, stack_index):
-        args = lambda_args(expr)
-        body = lambda_body(expr)
-        lambda_env, si = self.extend_env_for_lambda(args, env,
+    def compile_closure(self, expr, env, stack_index):
+        args = expr.parameters
+        body = expr.body
+        closure_env, si = self.extend_env_for_closure(args, env,
                                                     -Compiler.WORDSIZE)
-        lambda_label = self.label_generator.unique_label("lambda")
-        lambda_end = self.label_generator.unique_label("lambda_end")
-        self.emitter.emit_stmt("    jmp %s" % lambda_end)
-        self.emitter.function_header(lambda_label)
-        self.compile_expr(body, lambda_env, si)
+        closure_label = self.label_generator.unique_label("closure")
+        closure_end = self.label_generator.unique_label("closure_end")
+        self.emitter.emit_stmt("    jmp %s" % closure_end)
+        self.emitter.function_header(closure_label)
+        self.compile_expr(body, closure_env, si)
         self.emitter.emit_stmt("    ret")
-        self.emitter.emit_label(lambda_end)
-        self.emitter.emit_stmt("   lea %s, %%rax" % lambda_label)
+        self.emitter.emit_label(closure_end)
+        self.emitter.emit_stmt("   lea %s, %%rax" % closure_label)
 
-    def extend_env_for_lambda(self, lambda_args, env, stack_index):
+    def extend_env_for_closure(self, closure_args, env, stack_index):
         extended_env = env
-        for arg in lambda_args:
+        for arg in closure_args:
             extended_env = extended_env.extend(arg.symbol, stack_index)
             stack_index -= Compiler.WORDSIZE
         return extended_env, stack_index
