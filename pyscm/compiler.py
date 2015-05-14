@@ -1,6 +1,6 @@
 from parser import Parser
 from emitter import Emitter
-from expression import PyScmSymbol
+from expression import PyScmSymbol, PyScmFreeVarRef
 from expression import is_number, is_boolean, is_closure, is_free_var_reference
 from expression import lambda_body, is_application, is_variable, lambda_args
 from expression import is_tagged_list, if_condition, if_conseq, is_if
@@ -145,7 +145,11 @@ class Compiler(object):
         self.compile_expr(let_body(expr), extended_env, si)
 
     def compile_variable_reference(self, expr, env, stack_index):
-        self.emitter.load_from_stack(env.get_var(expr.symbol))
+        if isinstance(expr, PyScmSymbol):
+            self.emitter.load_from_stack(env.get_var(expr))
+        else:
+            print "FREE VAR REFERENCE", expr, env.bindings
+            self.emitter.emit_stmt('    movq {0}(%rbx), %rax'.format(env.get_var(expr)))
 
     def compile_if(self, expr, env, stack_index):
         cond_false_label = self.label_generator.unique_label("false_branch")
@@ -182,24 +186,49 @@ class Compiler(object):
         args = expr.parameters
         body = expr.body
         closure_env, si = self.extend_env_for_closure(args, env,
-                                                    -Compiler.WORDSIZE)
+                                                      -Compiler.WORDSIZE)
         closure_label = self.label_generator.unique_label("closure")
         closure_end = self.label_generator.unique_label("closure_end")
 
         self.alloc_closure(stack_index, len(expr.free_variables), closure_label)
         self.emitter.save_on_stack(stack_index)
+        closure_stack_index = stack_index
+        stack_index -= Compiler.WORDSIZE
+        
+        offset = 2
+        self.emitter.emit_stmt('   movq %rax, %rdx')
+        for fv in expr.free_variables:
+            print "FOO", fv, offset
+
+            self.compile_variable_reference(fv, env, stack_index)
+            self.emitter.emit_stmt('    movq %rax, {0}(%rdx)'.format(offset * Compiler.WORDSIZE))
+            closure_env = closure_env.extend(PyScmFreeVarRef(fv.symbol), offset)
+            offset += 1
+
 
         self.emitter.emit_stmt("    jmp %s" % closure_end)
         self.emitter.function_header(closure_label)
+        
+        # self.emitter.emit_stmt('    movq %rbx, %rax')
+        # self.emitter.save_on_stack(stack_index)
+        # stack_index -= Compiler.WORDSIZE
+        # self.emitter.load_from_stack(closure_stack_index)
+        # self.emitter.emit_stmt('    movq %rax, %rbx')
+
+        
         self.compile_expr(body, closure_env, si)
+        # self.emitter.load_from_stack(stack_index + Compiler.WORDSIZE)
+        # self.emitter.emit_stmt('    movq %rax, %rbx')
         self.emitter.emit_stmt("    ret")
         self.emitter.emit_label(closure_end)
-        self.emitter.load_from_stack(stack_index)
+        self.emitter.load_from_stack(closure_stack_index)
+        
+        
 
     def extend_env_for_closure(self, closure_args, env, stack_index):
         extended_env = env
         for arg in closure_args:
-            extended_env = extended_env.extend(arg.symbol, stack_index)
+            extended_env = extended_env.extend(arg, stack_index)
             stack_index -= Compiler.WORDSIZE
         return extended_env, stack_index
 
@@ -207,13 +236,27 @@ class Compiler(object):
         function = expr.expressions[0]
         args = expr.expressions[1:]
         self.compile_expr(function, env, stack_index)
+        self.emitter.save_on_stack(stack_index)
+        closure_stack_index = stack_index
+        stack_index -= Compiler.WORDSIZE
         self.emitter.emit_stmt('    movq {0}(%rax), %rax'.format(Compiler.WORDSIZE))
         self.emitter.save_on_stack(stack_index)
+        function_stack_index = stack_index
+        stack_index -= Compiler.WORDSIZE
         self.emit_application_arguments(args, env, stack_index)
-        self.emitter.load_from_stack(stack_index)
+
+        self.emitter.emit_stmt('    movq %rbx, %rax')
+        self.emitter.save_on_stack(stack_index)
+        env_stack_index = stack_index
+        stack_index -= Compiler.WORDSIZE
+        self.emitter.load_from_stack(closure_stack_index)
+        self.emitter.emit_stmt('    movq %rax, %rbx')
+        self.emitter.load_from_stack(function_stack_index)
         self.emitter.adjust_base(stack_index + Compiler.WORDSIZE)
         self.emitter.emit_stmt('    call *%rax')
         self.emitter.adjust_base(- (stack_index + Compiler.WORDSIZE))
+        self.emitter.load_from_stack(env_stack_index)
+        self.emitter.emit_stmt('    movq %rax, %rbx')
 
     def emit_application_arguments(self, args, env, stack_index):
         for arg in args:

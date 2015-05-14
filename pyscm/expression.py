@@ -42,12 +42,16 @@ class PyScmSymbol(object):
         self.symbol = sym
 
     def __eq__(self, other):
+        #return (isinstance(other, PyScmFreeVarRef) or isinstance(other, PyScmSymbol)) and other.symbol == self.symbol
         if not isinstance(other, self.__class__):
             return False
         return self.symbol == other.symbol
 
     def __repr__(self):
-        return self.symbol
+        return "VAR " + self.symbol 
+
+    def __hash__(self):
+        return hash(self.symbol)
 
 
 class PyScmBoolean(object):
@@ -89,12 +93,16 @@ class PyScmFreeVarRef(object):
         self.symbol = free_var
 
     def __eq__(self, other):
+        #return (isinstance(other, PyScmFreeVarRef) or isinstance(other, PyScmSymbol)) and other.symbol == self.symbol
         if not isinstance(other, self.__class__):
             return False
         return self.symbol == other.symbol
 
     def __repr__(self):
         return "FreeVarReference %s" % self.symbol
+
+    def __hash__(self):
+        return hash(self.symbol)
 
 
 def is_number(expr):
