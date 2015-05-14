@@ -32,7 +32,8 @@ class Compiler(object):
     def compile(self):
         exprs = self.parser.parse()
         desugared_exprs = [desugar(exp) for exp in exprs]
-        closure_converter = ClosureConverter()
+        global_variables = [PyScmSymbol(fn) for fn in self.primitive_functions]
+        closure_converter = ClosureConverter(global_variables)
         closure_converted = [closure_converter.closure_convert(exp)
                              for exp in desugared_exprs]
         print closure_converted
