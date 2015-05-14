@@ -170,14 +170,9 @@ class Compiler(object):
         (a) number of free variables, (b) addreses of label indicating start of closure's body
         (c) list of free variables
         """
-        self.alloc_memory(stack_index, Compiler.WORDSIZE * 3)
+        self.alloc_memory(stack_index, (2 + size_free_variables) * Compiler.WORDSIZE)
         self.emitter.save_on_stack(stack_index)
         stack_index -= Compiler.WORDSIZE
-        if size_free_variables > 0:
-            self.alloc_memory(stack_index, size_free_variables * Compiler.WORDSIZE)
-            self.emitter.emit_stmt('    movq %rax, %rdi')
-            self.emitter.load_from_stack(stack_index + Compiler.WORDSIZE)
-            self.emitter.emit_stmt('    movq %rdi, {0}(%rax)'.format(2*Compiler.WORDSIZE))
 
         self.emitter.emit_stmt('   movq ${0}, (%rax)'.format(size_free_variables))
         self.emitter.emit_stmt("   lea %s, %%rdi" % label)
