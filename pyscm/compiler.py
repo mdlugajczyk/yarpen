@@ -165,7 +165,7 @@ class Compiler(object):
         self.emitter.emit_stmt("    call pyscm_alloc")
         self.emitter.adjust_base(- (stack_index + Compiler.WORDSIZE))
 
-    def alloc_closure(self, stack_index, size_free_variables):
+    def alloc_closure(self, stack_index, size_free_variables, label):
         """ We need to allocate a closure structure holding:
         (a) number of free variables, (b) addreses of label indicating start of closure's body
         (c) list of free variables
@@ -179,6 +179,10 @@ class Compiler(object):
             self.emitter.load_from_stack(stack_index + Compiler.WORDSIZE)
             self.emitter.emit_stmt('    movq %rdi, {0}(%rax)'.format(2*Compiler.WORDSIZE))
 
+        self.emitter.emit_stmt('   movq ${0}, (%rax)'.format(size_free_variables))
+        self.emitter.emit_stmt("   lea %s, %%rdi" % label)
+        self.emitter.emit_stmt('   movq %rdi, {0}(%rax)'.format(Compiler.WORDSIZE))
+
     def compile_closure(self, expr, env, stack_index):
         args = expr.parameters
         body = expr.body
@@ -187,11 +191,7 @@ class Compiler(object):
         closure_label = self.label_generator.unique_label("closure")
         closure_end = self.label_generator.unique_label("closure_end")
 
-        self.alloc_closure(stack_index, len(expr.free_variables))
-        self.emitter.emit_stmt('   movq %rax, %rdi')
-        self.emitter.emit_stmt("   lea %s, %%rax" % closure_label)
-        self.emitter.emit_stmt('   movq %rax, {0}(%rdi)'.format(Compiler.WORDSIZE))
-        self.emitter.emit_stmt('   movq %rdi, %rax')
+        self.alloc_closure(stack_index, len(expr.free_variables), closure_label)
         self.emitter.save_on_stack(stack_index)
 
         self.emitter.emit_stmt("    jmp %s" % closure_end)
