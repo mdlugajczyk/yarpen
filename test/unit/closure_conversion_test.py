@@ -8,7 +8,7 @@ from unittest import TestCase
 class ClosureConversionTest(TestCase):
 
     def setUp(self):
-        self.converter = ClosureConverter()
+        self.converter = ClosureConverter([PyScmSymbol("fx+")])
 
     def test_free_variables_for_symbol(self):
         sym = PyScmSymbol("foo")
@@ -51,6 +51,11 @@ class ClosureConversionTest(TestCase):
         self.assertEqual(free, [PyScmSymbol("x"),
                                 PyScmSymbol("y"),
                                 PyScmSymbol("z")])
+
+    def test_free_variables_globally_defined_symbols(self):
+        expr = Parser("(fx+ x 3)").parse()[0]
+        free = self.converter.free_variables(expr)
+        self.assertEqual(free, [PyScmSymbol("x")])
 
     def test_closure_convert_number(self):
         num = PyScmNumber(3)

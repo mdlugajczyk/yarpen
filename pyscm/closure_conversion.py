@@ -6,6 +6,9 @@ from expression import if_conseq, if_alternative, make_lambda
 
 class ClosureConverter(object):
 
+    def __init__(self, global_variables=[]):
+        self.global_variables = global_variables
+
     def closure_convert(self, exp):
         if is_number(exp) or is_boolean(exp) or is_variable(exp):
             return exp
@@ -47,7 +50,10 @@ class ClosureConverter(object):
 
     def free_variables(self, expr):
         if is_variable(expr):
-            return [expr]
+            if expr in self.global_variables:
+                return []
+            else:
+                return [expr]
         elif is_if(expr):
             return (self.free_variables(if_condition(expr))
                     + self.free_variables(if_conseq(expr))
