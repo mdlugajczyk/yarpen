@@ -86,15 +86,15 @@ class PyScmClosure(object):
 
 class PyScmFreeVarRef(object):
     def __init__(self, free_var):
-        self.free_var = free_var
+        self.symbol = free_var
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
             return False
-        return self.free_var == other.free_var
+        return self.symbol == other.symbol
 
     def __repr__(self):
-        return "FreeVarReference %s" % self.free_var
+        return "FreeVarReference %s" % self.symbol
 
 
 def is_number(expr):
