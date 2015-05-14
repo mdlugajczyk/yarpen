@@ -28,6 +28,16 @@ void pyscm_display(pyscm_ptr expr) {
   }
 }
 
+void* pyscm_alloc(int size) {
+  void *mem = malloc(size);
+  if (!mem) {
+    fprintf(stderr, "Failed to allocate %d bytes of memory. Aborting.\n", size);
+    exit(1);
+  }
+
+  return mem;
+}
+
 int main(int argc, char **argv) {
   pyscm_display(pyscm_start());
 
