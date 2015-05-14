@@ -159,6 +159,26 @@ class Compiler(object):
         self.compile_expr(if_alternative(expr), env, stack_index)
         self.emitter.emit_label(if_end_label)
 
+    def alloc_memory(self, stack_index, size):
+        self.emitter.adjust_base(stack_index + Compiler.WORDSIZE)
+        self.emitter.emit_stmt("    movq $%d, %%rdi" % size)
+        self.emitter.emit_stmt("    call pyscm_alloc")
+        self.emitter.adjust_base(- (stack_index + Compiler.WORDSIZE))
+
+    def alloc_closure(self, stack_index, size_free_variables):
+        """ We need to allocate a closure structure holding:
+        (a) number of free variables, (b) addreses of label indicating start of closure's body
+        (c) list of free variables
+        """
+        self.alloc_memory(stack_index, Compiler.WORDSIZE * 3)
+        self.emitter.save_on_stack(stack_index)
+        stack_index -= Compiler.WORDSIZE
+        if size_free_variables > 0:
+            self.alloc_memory(stack_index, size_free_variables * Compiler.WORDSIZE)
+            self.emitter.emit_stmt('    movq %rax, %rdi')
+            self.emitter.load_from_stack(stack_index + Compiler.WORDSIZE)
+            self.emitter.emit_stmt('    movq %rdi, {0}(%rax)'.format(2*Compiler.WORDSIZE))
+
     def compile_closure(self, expr, env, stack_index):
         args = expr.parameters
         body = expr.body
@@ -166,12 +186,20 @@ class Compiler(object):
                                                     -Compiler.WORDSIZE)
         closure_label = self.label_generator.unique_label("closure")
         closure_end = self.label_generator.unique_label("closure_end")
+
+        self.alloc_closure(stack_index, len(expr.free_variables))
+        self.emitter.emit_stmt('   movq %rax, %rdi')
+        self.emitter.emit_stmt("   lea %s, %%rax" % closure_label)
+        self.emitter.emit_stmt('   movq %rax, {0}(%rdi)'.format(Compiler.WORDSIZE))
+        self.emitter.emit_stmt('   movq %rdi, %rax')
+        self.emitter.save_on_stack(stack_index)
+
         self.emitter.emit_stmt("    jmp %s" % closure_end)
         self.emitter.function_header(closure_label)
         self.compile_expr(body, closure_env, si)
         self.emitter.emit_stmt("    ret")
         self.emitter.emit_label(closure_end)
-        self.emitter.emit_stmt("   lea %s, %%rax" % closure_label)
+        self.emitter.load_from_stack(stack_index)
 
     def extend_env_for_closure(self, closure_args, env, stack_index):
         extended_env = env
@@ -184,6 +212,7 @@ class Compiler(object):
         function = expr.expressions[0]
         args = expr.expressions[1:]
         self.compile_expr(function, env, stack_index)
+        self.emitter.emit_stmt('    movq {0}(%rax), %rax'.format(Compiler.WORDSIZE))
         self.emitter.save_on_stack(stack_index)
         self.emit_application_arguments(args, env, stack_index)
         self.emitter.load_from_stack(stack_index)
