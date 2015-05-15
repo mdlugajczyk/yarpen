@@ -27,7 +27,6 @@ class ClosureConverter(object):
                             free_vars,
                             lambda_args(exp))
 
-
     def substitute(self, exp, free_vars):
         if is_number(exp) or is_boolean(exp):
             return exp
@@ -37,16 +36,15 @@ class ClosureConverter(object):
             else:
                 return exp
         elif is_lambda(exp):
-            lambda_body_exp = substitute(lambda_body(exp),
-                                         sub(free_vars,
-                                             lambda_args(exp)))
+            lambda_body_exp = self.substitute(lambda_body(exp),
+                                              sub(free_vars,
+                                                  lambda_args(exp)))
             return make_lambda(lambda_args(exp), lambda_body_exp)
         elif is_application(exp):
             return PyScmList([self.substitute(e, free_vars)
                               for e in exp.expressions])
         else:
             return exp
-
 
     def free_variables(self, expr):
         if is_variable(expr):

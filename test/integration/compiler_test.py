@@ -26,14 +26,15 @@ def run_tests():
         with open("pyscm_code.s", "w") as f:
             f.write(code)
         compilation_status = call(["gcc", "runtime/pyscm_runtime.c",
-                                   "pyscm_code.s", "-o", "pyscm_test"])
+                                   "pyscm_code.s", "-o", "pyscm_test", "-g"])
         if compilation_status != 0:
             print("Failed to compile test.")
             break
 
         output = check_output("./pyscm_test")
         if output != test[2]:
-            print("Test failed. Expected %s got %s\nCode: %s" % (test[2], output, test[1]))
+            print("Test failed. Expected %s got %s\nCode: %s"
+                  % (test[2], output, test[1]))
             break
 
 add_group("Integers", [("1", "1"),
