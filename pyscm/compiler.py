@@ -64,7 +64,7 @@ class Compiler(object):
             raise Exception("Unknow expression %s", expr)
 
     def compile_number(self, num):
-        self.emitter.emit_constant(self.int_representation(num.number), "rax")
+        self.emitter.emit_constant(self.int_repr(num.number), "rax")
 
     def compile_boolean(self, b):
         if b.bool:
@@ -121,13 +121,13 @@ class Compiler(object):
         assert(len(expr.expressions) == 2)
         self.compile_expr(expr.expressions[1], env, stack_index)
         self.emitter.emit_stmt("    cmp $%d, %%rax" %
-                               self.int_representation(0))
+                               self.int_repr(0))
         self.emitter.emit_stmt("    sete %al")
         self.emitter.emit_stmt('    movzbq %al, %rax')
         self.emitter.emit_stmt("    shl $%d, %%rax" % Compiler.BOOL_BIT)
         self.emitter.emit_stmt("    or $%d, %%rax" % Compiler.BOOL_FALSE)
 
-    def int_representation(self, integer):
+    def int_repr(self, integer):
         return integer << Compiler.INT_SHIFT
 
     def compile_variable_reference(self, expr, env, stack_index):
