@@ -1,7 +1,12 @@
 from parser import Parser
 from emitter import Emitter
-from expression import PyScmNumber, PyScmBoolean, PyScmList, PyScmSymbol
+from expression import PyScmSymbol, PyScmFreeVarRef
+from expression import is_number, is_boolean, is_closure, is_free_var_reference
+from expression import is_application, is_variable, is_tagged_list
+from expression import if_condition, if_conseq, is_if, if_alternative
 from environment import Environment
+from desugar import desugar
+from closure_conversion import ClosureConverter
 
 
 class Compiler(object):
@@ -24,15 +29,20 @@ class Compiler(object):
                                     "zero?": self.compile_prim_zero_p}
 
     def compile(self):
-        self.exprs = self.parser.parse()
+        exprs = self.parser.parse()
+        desugared_exprs = [desugar(exp) for exp in exprs]
+        global_variables = [PyScmSymbol(fn) for fn in self.primitive_functions]
+        closure_converter = ClosureConverter(global_variables)
+        closure_converted = [closure_converter.closure_convert(exp)
+                             for exp in desugared_exprs]
         self.emitter.entry_point_preamble("pyscm_start")
-        self.compile_exprs()
+        self.compile_exprs(closure_converted)
         self.emitter.emit_ret()
         return self.emitter.emit()
 
-    def compile_exprs(self):
+    def compile_exprs(self, exprs):
         env = Environment()
-        for expr in self.exprs:
+        for expr in exprs:
             self.compile_expr(expr, env, -Compiler.WORDSIZE)
 
     def compile_expr(self, expr, env, stack_index):
@@ -40,17 +50,15 @@ class Compiler(object):
             self.compile_number(expr)
         elif is_boolean(expr):
             self.compile_boolean(expr)
-        elif self.is_variable(expr):
+        elif is_variable(expr) or is_free_var_reference(expr):
             self.compile_variable_reference(expr, env, stack_index)
-        elif self.is_if(expr):
+        elif is_if(expr):
             self.compile_if(expr, env, stack_index)
         elif self.is_primitive_function(expr):
             self.compile_primitive_function(expr, env, stack_index)
-        elif self.is_lambda(expr):
-            self.compile_lambda(expr, env, stack_index)
-        elif self.is_let(expr):
-            self.compile_let(expr, env, stack_index)
-        elif self.is_application(expr):
+        elif is_closure(expr):
+            self.compile_closure(expr, env, stack_index)
+        elif is_application(expr):
             return self.compile_application(expr, env, stack_index)
         else:
             raise Exception("Unknow expression %s", expr)
@@ -122,101 +130,113 @@ class Compiler(object):
     def int_representation(self, integer):
         return integer << Compiler.INT_SHIFT
 
-    def is_let(self, expr):
-        return is_tagged_list(expr, PyScmSymbol("let"))
-
-    def let_bindings(self, expr):
-        assert(type(expr.expressions[1]) == PyScmList)
-        return expr.expressions[1].expressions
-
-    def let_body(self, expr):
-        return expr.expressions[2]
-
-    def compile_let(self, expr, env, stack_index):
-        si = stack_index
-        extended_env = env
-        for binding in self.let_bindings(expr):
-            var = binding.expressions[0]
-            val = binding.expressions[1]
-            self.compile_expr(val, env, si)
-            self.emitter.save_on_stack(si)
-            extended_env = extended_env.extend(var.symbol, si)
-            si -= Compiler.WORDSIZE
-        self.compile_expr(self.let_body(expr), extended_env, si)
-
-    def is_variable(self, expr):
-        return type(expr) == PyScmSymbol
-
     def compile_variable_reference(self, expr, env, stack_index):
-        self.emitter.load_from_stack(env.get_var(expr.symbol))
-
-    def is_if(self, expr):
-        return is_tagged_list(expr, PyScmSymbol("if"))
-
-    def if_condition(self, expr):
-        return expr.expressions[1]
-
-    def if_conseq(self, expr):
-        return expr.expressions[2]
-
-    def if_alternative(self, expr):
-        return expr.expressions[3]
+        if isinstance(expr, PyScmSymbol):
+            self.emitter.load_from_stack(env.get_var(expr))
+        else:
+            index = env.get_var(expr) * Compiler.WORDSIZE
+            self.emitter.emit_stmt('    movq {0}(%rbx), %rax'.format(index))
 
     def compile_if(self, expr, env, stack_index):
         cond_false_label = self.label_generator.unique_label("false_branch")
         if_end_label = self.label_generator.unique_label("if_end")
-        self.compile_expr(self.if_condition(expr), env, stack_index)
+        self.compile_expr(if_condition(expr), env, stack_index)
         self.emitter.emit_stmt("    cmp $%d, %%rax" % Compiler.BOOL_FALSE)
         self.emitter.emit_stmt("    je %s" % cond_false_label)
-        self.compile_expr(self.if_conseq(expr), env, stack_index)
+        self.compile_expr(if_conseq(expr), env, stack_index)
         self.emitter.emit_stmt("    jmp %s" % if_end_label)
         self.emitter.emit_label(cond_false_label)
-        self.compile_expr(self.if_alternative(expr), env, stack_index)
+        self.compile_expr(if_alternative(expr), env, stack_index)
         self.emitter.emit_label(if_end_label)
 
-    def is_lambda(self, expr):
-        return is_tagged_list(expr, PyScmSymbol("lambda"))
+    def alloc_memory(self, stack_index, size):
+        self.emitter.adjust_base(stack_index + Compiler.WORDSIZE)
+        self.emitter.emit_stmt("    movq $%d, %%rdi" % size)
+        self.emitter.emit_stmt("    call pyscm_alloc")
+        self.emitter.adjust_base(- (stack_index + Compiler.WORDSIZE))
 
-    def lambda_args(self, expr):
-        return expr.expressions[1].expressions
+    def alloc_closure(self, stack_index, size_free_variables, label):
+        """ We need to allocate a closure structure holding:
+        (a) number of free variables, (b) addreses of label indicating
+        start of closure's body
+        (c) list of free variables
+        """
+        self.alloc_memory(stack_index,
+                          (2 + size_free_variables) * Compiler.WORDSIZE)
+        self.emitter.save_on_stack(stack_index)
+        stack_index -= Compiler.WORDSIZE
 
-    def lambda_body(self, expr):
-        return expr.expressions[2]
+        self.emitter.emit_stmt('   movq ${0}, (%rax)'.
+                               format(size_free_variables))
+        self.emitter.emit_stmt("   lea %s, %%rdi" % label)
+        self.emitter.emit_stmt('   movq %rdi, {0}(%rax)'.
+                               format(Compiler.WORDSIZE))
 
-    def compile_lambda(self, expr, env, stack_index):
-        args = self.lambda_args(expr)
-        body = self.lambda_body(expr)
-        lambda_env, si = self.extend_env_for_lambda(args, env,
-                                                    -Compiler.WORDSIZE)
-        lambda_label = self.label_generator.unique_label("lambda")
-        lambda_end = self.label_generator.unique_label("lambda_end")
-        self.emitter.emit_stmt("    jmp %s" % lambda_end)
-        self.emitter.function_header(lambda_label)
-        self.compile_expr(body, lambda_env, si)
+    def compile_closure(self, expr, env, stack_index):
+        args = expr.parameters
+        body = expr.body
+        closure_env, si = self.extend_env_for_closure(args, env,
+                                                      -Compiler.WORDSIZE)
+        closure_label = self.label_generator.unique_label("closure")
+        closure_end = self.label_generator.unique_label("closure_end")
+
+        self.alloc_closure(stack_index, len(expr.free_variables),
+                           closure_label)
+        self.emitter.save_on_stack(stack_index)
+        closure_stack_index = stack_index
+        stack_index -= Compiler.WORDSIZE
+        offset = 2
+        self.emitter.emit_stmt('   movq %rax, %rdx')
+        for fv in expr.free_variables:
+            self.compile_variable_reference(fv, env, stack_index)
+            self.emitter.emit_stmt('    movq %rax, {0}(%rdx)'.
+                                   format(offset * Compiler.WORDSIZE))
+            closure_env = closure_env.extend(PyScmFreeVarRef(fv.symbol),
+                                             offset)
+            offset += 1
+
+        self.emitter.emit_stmt("    jmp %s" % closure_end)
+        self.emitter.function_header(closure_label)
+        self.compile_expr(body, closure_env, si)
         self.emitter.emit_stmt("    ret")
-        self.emitter.emit_label(lambda_end)
-        self.emitter.emit_stmt("   lea %s, %%rax" % lambda_label)
+        self.emitter.emit_label(closure_end)
+        self.emitter.load_from_stack(closure_stack_index)
 
-    def extend_env_for_lambda(self, lambda_args, env, stack_index):
+    def extend_env_for_closure(self, closure_args, env, stack_index):
         extended_env = env
-        for arg in lambda_args:
-            extended_env = extended_env.extend(arg.symbol, stack_index)
+        for arg in closure_args:
+            extended_env = extended_env.extend(arg, stack_index)
             stack_index -= Compiler.WORDSIZE
         return extended_env, stack_index
-
-    def is_application(self, expression):
-        return isinstance(expression, PyScmList)
 
     def compile_application(self, expr, env, stack_index):
         function = expr.expressions[0]
         args = expr.expressions[1:]
         self.compile_expr(function, env, stack_index)
         self.emitter.save_on_stack(stack_index)
+        closure_stack_index = stack_index
+        stack_index -= Compiler.WORDSIZE
+        self.emitter.emit_stmt('    movq {0}(%rax), %rax'.
+                               format(Compiler.WORDSIZE))
+        self.emitter.save_on_stack(stack_index)
+        function_stack_index = stack_index
+        stack_index -= Compiler.WORDSIZE
         self.emit_application_arguments(args, env, stack_index)
-        self.emitter.load_from_stack(stack_index)
+
+        self.emitter.emit_stmt('    movq %rbx, %rax')
+        self.emitter.save_on_stack(stack_index)
+        env_stack_index = stack_index
+        self.emitter.load_from_stack(closure_stack_index)
+        self.emitter.emit_stmt('    movq %rax, %rbx')
+        self.emitter.load_from_stack(function_stack_index)
         self.emitter.adjust_base(stack_index + Compiler.WORDSIZE)
         self.emitter.emit_stmt('    call *%rax')
         self.emitter.adjust_base(- (stack_index + Compiler.WORDSIZE))
+        stack_index -= Compiler.WORDSIZE
+        self.emitter.save_on_stack(stack_index)
+        self.emitter.load_from_stack(env_stack_index)
+        self.emitter.emit_stmt('    movq %rax, %rbx')
+        self.emitter.load_from_stack(stack_index)
 
     def emit_application_arguments(self, args, env, stack_index):
         for arg in args:
@@ -233,16 +253,3 @@ class LabelGenerator:
         label = prefix + ("__%d" % self.counter)
         self.counter += 1
         return label
-
-
-def is_number(expr):
-    return isinstance(expr, PyScmNumber)
-
-
-def is_boolean(expr):
-    return isinstance(expr, PyScmBoolean)
-
-
-def is_tagged_list(expr, tag):
-    return (isinstance(expr, PyScmList) and len(expr.expressions) > 0
-            and expr.expressions[0] == tag)
