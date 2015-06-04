@@ -15,35 +15,17 @@ class Emitter(object):
     def emit(self):
         return self.code + "\n"
 
-    def emit_ret(self):
-        self.code += "    ret\n"
-
     def binary_instruction(self, inst, arg1, arg2):
-        self.emit_stmt('    {0} {1}, {2}'.format(inst, arg1, arg2))
+        self.emit_stmt('{0} {1}, {2}'.format(inst, arg1, arg2))
 
     def unary_instruction(self, inst, arg):
-        self.emit_stmt('    {0} {1}'.format(inst, arg))
-
-    def emit_constant(self, const, dst):
-        self.code += "movq $%s, %s\n" % (const, dst)
+        self.emit_stmt('{0} {1}'.format(inst, arg))
 
     def emit_stmt(self, stmt):
-        self.code += "%s\n" % stmt
+        self.code += "\t%s\n" % stmt
 
-    def save_on_stack(self, stack_index):
-        self.emit_stmt("    movq %%rax, %d(%%rsp)" % stack_index)
-
-    def load_from_stack(self, stack_index):
-        self.emit_stmt("    movq  %d(%%rsp), %%rax" % stack_index)
-
-    def emit_label(self, label):
-        self.emit_stmt("%s:" % label)
-
-    def adjust_base(self, si):
-        if si > 0:
-            self.code += "    addq $%d, %%rsp\n" % si
-        else:
-            self.code += "    subq $%d, %%rsp\n" % (-si)
+    def label(self, label):
+        self.code += label + ":\n"
 
     def and_inst(self, constant, register):
         self.binary_instruction('and', constant, register)
@@ -70,7 +52,7 @@ class Emitter(object):
         self.unary_instruction('jmp', label)
 
     def ret(self):
-        self.emit_stmt('    ret')
+        self.emit_stmt('ret')
 
     def add(self, src, dst):
         self.binary_instruction('addq', src, dst)

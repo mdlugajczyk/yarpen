@@ -39,7 +39,7 @@ class Compiler(object):
                              for exp in desugared_exprs]
         self.emitter.entry_point_preamble("pyscm_start")
         self.compile_exprs(closure_converted)
-        self.emitter.emit_ret()
+        self.emitter.ret()
         return self.emitter.emit()
 
     def compile_exprs(self, exprs):
@@ -66,13 +66,13 @@ class Compiler(object):
             raise Exception("Unknow expression %s", expr)
 
     def compile_number(self, num):
-        self.emitter.emit_constant(self.int_repr(num.number), RAX)
+        self.emitter.mov(immediate_const(self.int_repr(num.number)), RAX)
 
     def compile_boolean(self, b):
         if b.bool:
-            self.emitter.emit_constant(Compiler.BOOL_TRUE, RAX)
+            self.emitter.mov(immediate_const(Compiler.BOOL_TRUE), RAX)
         else:
-            self.emitter.emit_constant(Compiler.BOOL_FALSE, RAX)
+            self.emitter.mov(immediate_const(Compiler.BOOL_FALSE), RAX)
 
     def compile_primitive_function(self, expr, env, stack_index):
         prim = expr.expressions[0].symbol
@@ -96,7 +96,7 @@ class Compiler(object):
     def compile_prim_add(self, expr, env, stack_index):
         assert(len(expr.expressions) == 3)
         self.compile_expr(expr.expressions[1], env, stack_index)
-        self.emitter.save_on_stack(stack_index)
+        self.save_on_stack(stack_index)
         self.compile_expr(expr.expressions[2], env,
                           stack_index - Compiler.WORDSIZE)
         self.emitter.add(offset(RSP, stack_index), RAX)
@@ -104,16 +104,16 @@ class Compiler(object):
     def compile_prim_sub(self, expr, env, stack_index):
         assert(len(expr.expressions) == 3)
         self.compile_expr(expr.expressions[1], env, stack_index)
-        self.emitter.save_on_stack(stack_index)
+        self.save_on_stack(stack_index)
         self.compile_expr(expr.expressions[2], env,
                           stack_index - Compiler.WORDSIZE)
         self.emitter.sub(RAX, offset(RSP, stack_index))
-        self.emitter.load_from_stack(stack_index)
+        self.load_from_stack(stack_index)
 
     def compile_prim_mul(self, expr, env, stack_index):
         assert(len(expr.expressions) == 3)
         self.compile_expr(expr.expressions[1], env, stack_index)
-        self.emitter.save_on_stack(stack_index)
+        self.save_on_stack(stack_index)
         self.compile_expr(expr.expressions[2], env,
                           stack_index - Compiler.WORDSIZE)
         self.emitter.shr(immediate_const(Compiler.INT_SHIFT), RAX)
@@ -133,7 +133,7 @@ class Compiler(object):
 
     def compile_variable_reference(self, expr, env, stack_index):
         if isinstance(expr, PyScmSymbol):
-            self.emitter.load_from_stack(env.get_var(expr))
+            self.load_from_stack(env.get_var(expr))
         else:
             index = env.get_var(expr) * Compiler.WORDSIZE
             self.emitter.mov(offset(RBX, index), RAX)
@@ -146,15 +146,15 @@ class Compiler(object):
         self.emitter.jump_equal(cond_false_label)
         self.compile_expr(if_conseq(expr), env, stack_index)
         self.emitter.jmp(if_end_label)
-        self.emitter.emit_label(cond_false_label)
+        self.emitter.label(cond_false_label)
         self.compile_expr(if_alternative(expr), env, stack_index)
-        self.emitter.emit_label(if_end_label)
+        self.emitter.label(if_end_label)
 
     def alloc_memory(self, stack_index, size):
-        self.emitter.adjust_base(stack_index + Compiler.WORDSIZE)
+        self.adjust_base(stack_index + Compiler.WORDSIZE)
         self.emitter.mov(immediate_const(size), RDI)
         self.emitter.call("pyscm_alloc")
-        self.emitter.adjust_base(- (stack_index + Compiler.WORDSIZE))
+        self.adjust_base(- (stack_index + Compiler.WORDSIZE))
 
     def alloc_closure(self, stack_index, size_free_variables, label):
         """ We need to allocate a closure structure holding:
@@ -164,7 +164,7 @@ class Compiler(object):
         """
         self.alloc_memory(stack_index,
                           (2 + size_free_variables) * Compiler.WORDSIZE)
-        self.emitter.save_on_stack(stack_index)
+        self.save_on_stack(stack_index)
         stack_index -= Compiler.WORDSIZE
 
         self.emitter.mov(immediate_const(size_free_variables),
@@ -182,7 +182,7 @@ class Compiler(object):
 
         self.alloc_closure(stack_index, len(expr.free_variables),
                            closure_label)
-        self.emitter.save_on_stack(stack_index)
+        self.save_on_stack(stack_index)
         closure_stack_index = stack_index
         stack_index -= Compiler.WORDSIZE
         var_offset = 2
@@ -199,8 +199,8 @@ class Compiler(object):
         self.emitter.function_header(closure_label)
         self.compile_expr(body, closure_env, si)
         self.emitter.ret()
-        self.emitter.emit_label(closure_end)
-        self.emitter.load_from_stack(closure_stack_index)
+        self.emitter.label(closure_end)
+        self.load_from_stack(closure_stack_index)
 
     def extend_env_for_closure(self, closure_args, env, stack_index):
         extended_env = env
@@ -213,35 +213,47 @@ class Compiler(object):
         function = expr.expressions[0]
         args = expr.expressions[1:]
         self.compile_expr(function, env, stack_index)
-        self.emitter.save_on_stack(stack_index)
+        self.save_on_stack(stack_index)
         closure_stack_index = stack_index
         stack_index -= Compiler.WORDSIZE
         self.emitter.mov(offset(RAX, Compiler.WORDSIZE), RAX)
-        self.emitter.save_on_stack(stack_index)
+        self.save_on_stack(stack_index)
         function_stack_index = stack_index
         stack_index -= Compiler.WORDSIZE
         self.emit_application_arguments(args, env, stack_index)
 
         self.emitter.mov(RBX, RAX)
-        self.emitter.save_on_stack(stack_index)
+        self.save_on_stack(stack_index)
         env_stack_index = stack_index
-        self.emitter.load_from_stack(closure_stack_index)
+        self.load_from_stack(closure_stack_index)
         self.emitter.mov(RAX, RBX)
-        self.emitter.load_from_stack(function_stack_index)
-        self.emitter.adjust_base(stack_index + Compiler.WORDSIZE)
+        self.load_from_stack(function_stack_index)
+        self.adjust_base(stack_index + Compiler.WORDSIZE)
         self.emitter.call(dereference(RAX))
-        self.emitter.adjust_base(- (stack_index + Compiler.WORDSIZE))
+        self.adjust_base(- (stack_index + Compiler.WORDSIZE))
         stack_index -= Compiler.WORDSIZE
-        self.emitter.save_on_stack(stack_index)
-        self.emitter.load_from_stack(env_stack_index)
+        self.save_on_stack(stack_index)
+        self.load_from_stack(env_stack_index)
         self.emitter.mov(RAX, RBX)
-        self.emitter.load_from_stack(stack_index)
+        self.load_from_stack(stack_index)
 
     def emit_application_arguments(self, args, env, stack_index):
         for arg in args:
             stack_index -= Compiler.WORDSIZE
             self.compile_expr(arg, env, stack_index)
-            self.emitter.save_on_stack(stack_index)
+            self.save_on_stack(stack_index)
+
+    def save_on_stack(self, stack_index):
+        self.emitter.mov(RAX, offset(RSP, stack_index))
+
+    def load_from_stack(self, stack_index):
+        self.emitter.mov(offset(RSP, stack_index), RAX)
+
+    def adjust_base(self, si):
+        if si > 0:
+            self.emitter.add(immediate_const(si), RSP)
+        else:
+            self.emitter.sub(immediate_const(-si), RSP)
 
 
 class LabelGenerator:
