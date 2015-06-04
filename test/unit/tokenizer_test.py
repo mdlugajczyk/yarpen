@@ -1,5 +1,5 @@
-from pyscm.tokens import LParen, RParen, Quote, Hash, NoTokens
-from pyscm.tokenizer import Tokenizer
+from yarpen.tokens import LParen, RParen, Quote, Hash, NoTokens
+from yarpen.tokenizer import Tokenizer
 import unittest
 
 

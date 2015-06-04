@@ -1,7 +1,7 @@
 from unittest import TestCase
-from pyscm.parser import Parser
-from pyscm.expression import PyScmList, PyScmNumber, PyScmSymbol, make_lambda
-from pyscm.desugar import desugar
+from yarpen.parser import Parser
+from yarpen.expression import PyScmList, PyScmNumber, PyScmSymbol, make_lambda
+from yarpen.desugar import desugar
 
 
 class DesugarTest(TestCase):

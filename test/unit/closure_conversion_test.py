@@ -1,7 +1,7 @@
-from pyscm.closure_conversion import ClosureConverter
-from pyscm.expression import PyScmSymbol, PyScmNumber, PyScmBoolean
-from pyscm.expression import PyScmClosure, PyScmFreeVarRef, PyScmList
-from pyscm.parser import Parser
+from yarpen.closure_conversion import ClosureConverter
+from yarpen.expression import PyScmSymbol, PyScmNumber, PyScmBoolean
+from yarpen.expression import PyScmClosure, PyScmFreeVarRef, PyScmList
+from yarpen.parser import Parser
 from unittest import TestCase
 
 

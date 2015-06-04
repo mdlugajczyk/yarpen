@@ -1,4 +1,4 @@
-from pyscm.parser import Parser
+from yarpen.parser import Parser
 import unittest
 
 

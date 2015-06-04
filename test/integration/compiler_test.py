@@ -2,11 +2,11 @@ import sys
 sys.path.insert(0, '.')
 
 from subprocess import call, check_output
-from pyscm.compiler import Compiler
+from yarpen.compiler import Compiler
 
 tests = []
 
-runtime_file = "runtime/pyscm_runtime.c"
+runtime_file = "runtime/yarpen_runtime.c"
 
 
 def add_integration_test(name, prog, output):
@@ -23,15 +23,15 @@ def run_tests():
         print("Working on test: %s" % test[0])
         compiler = Compiler(test[1])
         code = compiler.compile()
-        with open("pyscm_code.s", "w") as f:
+        with open("yarpen_code.s", "w") as f:
             f.write(code)
-        compilation_status = call(["gcc", "runtime/pyscm_runtime.c",
-                                   "pyscm_code.s", "-o", "pyscm_test", "-g"])
+        compilation_status = call(["gcc", "runtime/yarpen_runtime.c",
+                                   "yarpen_code.s", "-o", "yarpen_test", "-g"])
         if compilation_status != 0:
             print("Failed to compile test.")
             break
 
-        output = check_output("./pyscm_test")
+        output = check_output("./yarpen_test")
         if output != test[2]:
             print("Test failed. Expected %s got %s\nCode: %s"
                   % (test[2], output, test[1]))
