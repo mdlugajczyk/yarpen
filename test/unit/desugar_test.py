@@ -1,6 +1,7 @@
 from unittest import TestCase
 from yarpen.parser import Parser
-from yarpen.expression import PyScmList, PyScmNumber, PyScmSymbol, make_lambda
+from yarpen.expression import YarpenList, YarpenNumber, YarpenSymbol
+from yarpen.expression import make_lambda
 from yarpen.desugar import desugar
 
 
@@ -10,16 +11,16 @@ class DesugarTest(TestCase):
         expr = Parser("(let () 3)").parse()[0]
         desugared_exp = desugar(expr)
         self.assertEqual(desugared_exp,
-                         PyScmList([make_lambda([], PyScmNumber(3))]))
+                         YarpenList([make_lambda([], YarpenNumber(3))]))
 
     def test_desugar_let_with_bindings(self):
         expr = Parser("(let ((x 3) (y 4)) (+ x y))").parse()[0]
         desugared_exp = desugar(expr)
         self.assertEqual(desugared_exp,
-                         PyScmList([make_lambda([PyScmSymbol("x"),
-                                                 PyScmSymbol("y")],
-                                                PyScmList([PyScmSymbol("+"),
-                                                           PyScmSymbol("x"),
-                                                           PyScmSymbol("y")
-                                                           ])),
-                                    PyScmNumber(3), PyScmNumber(4)]))
+                         YarpenList([make_lambda([YarpenSymbol("x"),
+                                                 YarpenSymbol("y")],
+                                                 YarpenList([YarpenSymbol("+"),
+                                                             YarpenSymbol("x"),
+                                                             YarpenSymbol("y")
+                                                             ])),
+                                     YarpenNumber(3), YarpenNumber(4)]))

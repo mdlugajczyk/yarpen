@@ -1,4 +1,4 @@
-class PyScmList(object):
+class YarpenList(object):
     def __init__(self, exprs):
         self.expressions = exprs
 
@@ -11,7 +11,7 @@ class PyScmList(object):
         return self.expressions.__repr__()
 
 
-class PyScmQuoted(object):
+class YarpenQuoted(object):
     def __init__(self, datum):
         self.datum = datum
 
@@ -24,7 +24,7 @@ class PyScmQuoted(object):
         return self.datum.__repr__()
 
 
-class PyScmNumber(object):
+class YarpenNumber(object):
     def __init__(self, number):
         self.number = number
 
@@ -37,12 +37,12 @@ class PyScmNumber(object):
         return str(self.number)
 
 
-class PyScmSymbol(object):
+class YarpenSymbol(object):
     def __init__(self, sym):
         self.symbol = sym
 
     def __eq__(self, other):
-        #return (isinstance(other, PyScmFreeVarRef) or isinstance(other, PyScmSymbol)) and other.symbol == self.symbol
+        #return (isinstance(other, YarpenFreeVarRef) or isinstance(other, YarpenSymbol)) and other.symbol == self.symbol
         if not isinstance(other, self.__class__):
             return False
         return self.symbol == other.symbol
@@ -54,7 +54,7 @@ class PyScmSymbol(object):
         return hash(self.symbol)
 
 
-class PyScmBoolean(object):
+class YarpenBoolean(object):
     def __init__(self, bool):
         self.bool = bool
 
@@ -70,7 +70,7 @@ class PyScmBoolean(object):
             return '#f'
 
 
-class PyScmClosure(object):
+class YarpenClosure(object):
     def __init__(self, body, free_variables, parameters):
         self.body = body
         self.free_variables = free_variables
@@ -88,12 +88,12 @@ class PyScmClosure(object):
                                             self.parameters)
 
 
-class PyScmFreeVarRef(object):
+class YarpenFreeVarRef(object):
     def __init__(self, free_var):
         self.symbol = free_var
 
     def __eq__(self, other):
-        #return (isinstance(other, PyScmFreeVarRef) or isinstance(other, PyScmSymbol)) and other.symbol == self.symbol
+        #return (isinstance(other, YarpenFreeVarRef) or isinstance(other, YarpenSymbol)) and other.symbol == self.symbol
         if not isinstance(other, self.__class__):
             return False
         return self.symbol == other.symbol
@@ -106,15 +106,15 @@ class PyScmFreeVarRef(object):
 
 
 def is_number(expr):
-    return isinstance(expr, PyScmNumber)
+    return isinstance(expr, YarpenNumber)
 
 
 def is_boolean(expr):
-    return isinstance(expr, PyScmBoolean)
+    return isinstance(expr, YarpenBoolean)
 
 
 def is_lambda(expr):
-    return is_tagged_list(expr, PyScmSymbol("lambda"))
+    return is_tagged_list(expr, YarpenSymbol("lambda"))
 
 
 def lambda_args(expr):
@@ -126,34 +126,34 @@ def lambda_body(expr):
 
 
 def make_lambda(args, body):
-    return PyScmList([PyScmSymbol("lambda"), PyScmList(args), body])
+    return YarpenList([YarpenSymbol("lambda"), YarpenList(args), body])
 
 
 def is_application(expression):
-    return isinstance(expression, PyScmList)
+    return isinstance(expression, YarpenList)
 
 
 def is_variable(expr):
-    return type(expr) == PyScmSymbol
+    return type(expr) == YarpenSymbol
 
 
 def is_free_var_reference(expr):
-    return isinstance(expr, PyScmFreeVarRef)
+    return isinstance(expr, YarpenFreeVarRef)
 
 def is_if(expr):
-    return is_tagged_list(expr, PyScmSymbol("if"))
+    return is_tagged_list(expr, YarpenSymbol("if"))
 
 
 def make_if(cond, cons, alter):
-    return PyScmList([PyScmSymbol("if"), cond, cons, alter])
+    return YarpenList([YarpenSymbol("if"), cond, cons, alter])
 
 
 def is_let(expr):
-    return is_tagged_list(expr, PyScmSymbol("let"))
+    return is_tagged_list(expr, YarpenSymbol("let"))
 
 
 def let_bindings(expr):
-    assert(type(expr.expressions[1]) == PyScmList)
+    assert(type(expr.expressions[1]) == YarpenList)
     return expr.expressions[1].expressions
 
 
@@ -174,9 +174,9 @@ def if_alternative(expr):
 
 
 def is_closure(expr):
-    return isinstance(expr, PyScmClosure)
+    return isinstance(expr, YarpenClosure)
 
 
 def is_tagged_list(expr, tag):
-    return (isinstance(expr, PyScmList) and len(expr.expressions) > 0
+    return (isinstance(expr, YarpenList) and len(expr.expressions) > 0
             and expr.expressions[0] == tag)

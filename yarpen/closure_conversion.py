@@ -1,4 +1,4 @@
-from expression import PyScmFreeVarRef, PyScmList, PyScmClosure
+from expression import YarpenFreeVarRef, YarpenList, YarpenClosure
 from expression import is_number, is_boolean, is_lambda, lambda_args, is_if
 from expression import lambda_body, is_application, is_variable, if_condition
 from expression import if_conseq, if_alternative, make_lambda
@@ -15,7 +15,7 @@ class ClosureConverter(object):
         elif is_lambda(exp):
             return self.closure_convert_lambda(exp)
         elif is_application(exp):
-            return PyScmList([self.closure_convert(e)
+            return YarpenList([self.closure_convert(e)
                               for e in exp.expressions])
         else:
             return exp
@@ -23,7 +23,7 @@ class ClosureConverter(object):
     def closure_convert_lambda(self, exp):
         free_vars = self.free_variables(exp)
         converted_body = self.closure_convert(lambda_body(exp))
-        return PyScmClosure(self.substitute(converted_body, free_vars),
+        return YarpenClosure(self.substitute(converted_body, free_vars),
                             free_vars,
                             lambda_args(exp))
 
@@ -32,7 +32,7 @@ class ClosureConverter(object):
             return exp
         elif is_variable(exp):
             if exp in free_vars:
-                return PyScmFreeVarRef(exp.symbol)
+                return YarpenFreeVarRef(exp.symbol)
             else:
                 return exp
         elif is_lambda(exp):
@@ -41,7 +41,7 @@ class ClosureConverter(object):
                                                   lambda_args(exp)))
             return make_lambda(lambda_args(exp), lambda_body_exp)
         elif is_application(exp):
-            return PyScmList([self.substitute(e, free_vars)
+            return YarpenList([self.substitute(e, free_vars)
                               for e in exp.expressions])
         else:
             return exp

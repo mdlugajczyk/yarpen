@@ -1,6 +1,6 @@
 from parser import Parser
 from emitter import Emitter
-from expression import PyScmSymbol, PyScmFreeVarRef
+from expression import YarpenSymbol, YarpenFreeVarRef
 from expression import is_number, is_boolean, is_closure, is_free_var_reference
 from expression import is_application, is_variable, is_tagged_list
 from expression import if_condition, if_conseq, is_if, if_alternative
@@ -33,7 +33,7 @@ class Compiler(object):
     def compile(self):
         exprs = self.parser.parse()
         desugared_exprs = [desugar(exp) for exp in exprs]
-        global_variables = [PyScmSymbol(fn) for fn
+        global_variables = [YarpenSymbol(fn) for fn
                             in self.primitive_functions]
         closure_converter = ClosureConverter(global_variables)
         closure_converted = [closure_converter.closure_convert(exp)
@@ -81,7 +81,7 @@ class Compiler(object):
         compile_fun(expr, env, stack_index)
 
     def is_primitive_function(self, expr):
-        return any(is_tagged_list(expr, PyScmSymbol(prim))
+        return any(is_tagged_list(expr, YarpenSymbol(prim))
                    for prim in self.primitive_functions)
 
     def compile_prim_integer_p(self, expr, env, stack_index):
@@ -133,7 +133,7 @@ class Compiler(object):
         return integer << Compiler.INT_SHIFT
 
     def compile_variable_reference(self, expr, env, stack_index):
-        if isinstance(expr, PyScmSymbol):
+        if isinstance(expr, YarpenSymbol):
             self.load_from_stack(env.get_var(expr))
         else:
             index = env.get_var(expr) * Compiler.WORDSIZE
@@ -192,7 +192,7 @@ class Compiler(object):
             self.compile_variable_reference(fv, env, stack_index)
             self.emitter.mov(RAX,
                              offset(RDX, var_offset * Compiler.WORDSIZE))
-            closure_env = closure_env.extend(PyScmFreeVarRef(fv.symbol),
+            closure_env = closure_env.extend(YarpenFreeVarRef(fv.symbol),
                                              var_offset)
             var_offset += 1
 

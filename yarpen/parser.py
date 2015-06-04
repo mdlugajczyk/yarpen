@@ -1,5 +1,5 @@
-from expression import PyScmList, PyScmNumber, PyScmQuoted, PyScmBoolean
-from expression import PyScmSymbol
+from expression import YarpenList, YarpenNumber, YarpenQuoted, YarpenBoolean
+from expression import YarpenSymbol
 from tokens import LParen, RParen, Quote, Boolean, Symbol, Number
 from tokens import NoTokens
 from tokenizer import Tokenizer
@@ -32,14 +32,14 @@ class Parser:
     def _parse_quoted(self):
         self._consume_quote()  # consume '
         exp = self._parse_expression()
-        return PyScmQuoted(exp)
+        return YarpenQuoted(exp)
 
     def _parse_boolean(self):
         b = self._consume_bool().bool
         res = False
         if b == "#t":
             res = True
-        return PyScmBoolean(res)
+        return YarpenBoolean(res)
 
     def _parse_number(self):
         token = self._consume_number().number
@@ -48,10 +48,10 @@ class Parser:
             number = int(token)
         except ValueError:
             number = float(token)
-        return PyScmNumber(number)
+        return YarpenNumber(number)
 
     def _parse_symbol(self):
-        return PyScmSymbol(self._consume_symbol().symbol)
+        return YarpenSymbol(self._consume_symbol().symbol)
 
     def _parse_list(self):
         self._consume_lparen()
@@ -59,7 +59,7 @@ class Parser:
         while not self._is_list_end():
             exprs.append(self._parse_expression())
         self._consume_rparen()
-        return PyScmList(exprs)
+        return YarpenList(exprs)
 
     def _get_token(self):
         return self._tokenizer.peek()
