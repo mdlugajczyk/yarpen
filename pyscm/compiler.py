@@ -7,6 +7,8 @@ from expression import if_condition, if_conseq, is_if, if_alternative
 from environment import Environment
 from desugar import desugar
 from closure_conversion import ClosureConverter
+from registers import RAX, RBX, RDX, RDI, RSP, AL, offset, immediate_const
+from registers import dereference
 
 
 class Compiler(object):
@@ -64,13 +66,13 @@ class Compiler(object):
             raise Exception("Unknow expression %s", expr)
 
     def compile_number(self, num):
-        self.emitter.emit_constant(self.int_repr(num.number), "rax")
+        self.emitter.emit_constant(self.int_repr(num.number), RAX)
 
     def compile_boolean(self, b):
         if b.bool:
-            self.emitter.emit_constant(Compiler.BOOL_TRUE, "rax")
+            self.emitter.emit_constant(Compiler.BOOL_TRUE, RAX)
         else:
-            self.emitter.emit_constant(Compiler.BOOL_FALSE, "rax")
+            self.emitter.emit_constant(Compiler.BOOL_FALSE, RAX)
 
     def compile_primitive_function(self, expr, env, stack_index):
         prim = expr.expressions[0].symbol
@@ -84,12 +86,12 @@ class Compiler(object):
     def compile_prim_integer_p(self, expr, env, stack_index):
         assert(len(expr.expressions) == 2)
         self.compile_expr(expr.expressions[1], env, stack_index)
-        self.emitter.emit_stmt("    and $%d, %%rax" % Compiler.INT_MASK)
-        self.emitter.emit_stmt("    cmp $%d, %%rax" % Compiler.INT_TAG)
-        self.emitter.emit_stmt("    sete %al")
-        self.emitter.emit_stmt('    movzbq %al, %rax')
-        self.emitter.emit_stmt("    shl $%d, %%rax" % Compiler.BOOL_BIT)
-        self.emitter.emit_stmt("    or $%d, %%rax" % Compiler.BOOL_FALSE)
+        self.emitter.and_inst(immediate_const(Compiler.INT_MASK), RAX)
+        self.emitter.cmp(immediate_const(Compiler.INT_TAG), RAX)
+        self.emitter.sete(AL)
+        self.emitter.movzbq(AL, RAX)
+        self.emitter.shl(immediate_const(Compiler.BOOL_BIT), RAX)
+        self.emitter.or_inst(immediate_const(Compiler.BOOL_FALSE), RAX)
 
     def compile_prim_add(self, expr, env, stack_index):
         assert(len(expr.expressions) == 3)
@@ -97,7 +99,7 @@ class Compiler(object):
         self.emitter.save_on_stack(stack_index)
         self.compile_expr(expr.expressions[2], env,
                           stack_index - Compiler.WORDSIZE)
-        self.emitter.emit_stmt("   addq %s(%%rsp), %%rax" % stack_index)
+        self.emitter.add(offset(RSP, stack_index), RAX)
 
     def compile_prim_sub(self, expr, env, stack_index):
         assert(len(expr.expressions) == 3)
@@ -105,7 +107,7 @@ class Compiler(object):
         self.emitter.save_on_stack(stack_index)
         self.compile_expr(expr.expressions[2], env,
                           stack_index - Compiler.WORDSIZE)
-        self.emitter.emit_stmt("   subq %%rax, %s(%%rsp)" % stack_index)
+        self.emitter.sub(RAX, offset(RSP, stack_index))
         self.emitter.load_from_stack(stack_index)
 
     def compile_prim_mul(self, expr, env, stack_index):
@@ -114,18 +116,17 @@ class Compiler(object):
         self.emitter.save_on_stack(stack_index)
         self.compile_expr(expr.expressions[2], env,
                           stack_index - Compiler.WORDSIZE)
-        self.emitter.emit_stmt("   shr $%d, %%rax" % Compiler.INT_SHIFT)
-        self.emitter.emit_stmt("   mulq %d(%%rsp)" % stack_index)
+        self.emitter.shr(immediate_const(Compiler.INT_SHIFT), RAX)
+        self.emitter.mul(offset(RSP, stack_index))
 
     def compile_prim_zero_p(self, expr, env, stack_index):
         assert(len(expr.expressions) == 2)
         self.compile_expr(expr.expressions[1], env, stack_index)
-        self.emitter.emit_stmt("    cmp $%d, %%rax" %
-                               self.int_repr(0))
-        self.emitter.emit_stmt("    sete %al")
-        self.emitter.emit_stmt('    movzbq %al, %rax')
-        self.emitter.emit_stmt("    shl $%d, %%rax" % Compiler.BOOL_BIT)
-        self.emitter.emit_stmt("    or $%d, %%rax" % Compiler.BOOL_FALSE)
+        self.emitter.cmp(immediate_const(self.int_repr(0)), RAX)
+        self.emitter.sete(AL)
+        self.emitter.movzbq(AL, RAX)
+        self.emitter.shl(immediate_const(Compiler.BOOL_BIT), RAX)
+        self.emitter.or_inst(immediate_const(Compiler.BOOL_FALSE), RAX)
 
     def int_repr(self, integer):
         return integer << Compiler.INT_SHIFT
@@ -135,24 +136,24 @@ class Compiler(object):
             self.emitter.load_from_stack(env.get_var(expr))
         else:
             index = env.get_var(expr) * Compiler.WORDSIZE
-            self.emitter.emit_stmt('    movq {0}(%rbx), %rax'.format(index))
+            self.emitter.mov(offset(RBX, index), RAX)
 
     def compile_if(self, expr, env, stack_index):
         cond_false_label = self.label_generator.unique_label("false_branch")
         if_end_label = self.label_generator.unique_label("if_end")
         self.compile_expr(if_condition(expr), env, stack_index)
-        self.emitter.emit_stmt("    cmp $%d, %%rax" % Compiler.BOOL_FALSE)
-        self.emitter.emit_stmt("    je %s" % cond_false_label)
+        self.emitter.cmp(immediate_const(Compiler.BOOL_FALSE), RAX)
+        self.emitter.jump_equal(cond_false_label)
         self.compile_expr(if_conseq(expr), env, stack_index)
-        self.emitter.emit_stmt("    jmp %s" % if_end_label)
+        self.emitter.jmp(if_end_label)
         self.emitter.emit_label(cond_false_label)
         self.compile_expr(if_alternative(expr), env, stack_index)
         self.emitter.emit_label(if_end_label)
 
     def alloc_memory(self, stack_index, size):
         self.emitter.adjust_base(stack_index + Compiler.WORDSIZE)
-        self.emitter.emit_stmt("    movq $%d, %%rdi" % size)
-        self.emitter.emit_stmt("    call pyscm_alloc")
+        self.emitter.mov(immediate_const(size), RDI)
+        self.emitter.call("pyscm_alloc")
         self.emitter.adjust_base(- (stack_index + Compiler.WORDSIZE))
 
     def alloc_closure(self, stack_index, size_free_variables, label):
@@ -166,11 +167,10 @@ class Compiler(object):
         self.emitter.save_on_stack(stack_index)
         stack_index -= Compiler.WORDSIZE
 
-        self.emitter.emit_stmt('   movq ${0}, (%rax)'.
-                               format(size_free_variables))
-        self.emitter.emit_stmt("   lea %s, %%rdi" % label)
-        self.emitter.emit_stmt('   movq %rdi, {0}(%rax)'.
-                               format(Compiler.WORDSIZE))
+        self.emitter.mov(immediate_const(size_free_variables),
+                         offset(RAX, 0))
+        self.emitter.lea(label, RDI)
+        self.emitter.mov(RDI, offset(RAX, Compiler.WORDSIZE))
 
     def compile_closure(self, expr, env, stack_index):
         args = expr.parameters
@@ -185,20 +185,20 @@ class Compiler(object):
         self.emitter.save_on_stack(stack_index)
         closure_stack_index = stack_index
         stack_index -= Compiler.WORDSIZE
-        offset = 2
-        self.emitter.emit_stmt('   movq %rax, %rdx')
+        var_offset = 2
+        self.emitter.mov(RAX, RDX)
         for fv in expr.free_variables:
             self.compile_variable_reference(fv, env, stack_index)
-            self.emitter.emit_stmt('    movq %rax, {0}(%rdx)'.
-                                   format(offset * Compiler.WORDSIZE))
+            self.emitter.mov(RAX,
+                             offset(RDX, var_offset * Compiler.WORDSIZE))
             closure_env = closure_env.extend(PyScmFreeVarRef(fv.symbol),
-                                             offset)
-            offset += 1
+                                             var_offset)
+            var_offset += 1
 
-        self.emitter.emit_stmt("    jmp %s" % closure_end)
+        self.emitter.jmp(closure_end)
         self.emitter.function_header(closure_label)
         self.compile_expr(body, closure_env, si)
-        self.emitter.emit_stmt("    ret")
+        self.emitter.ret()
         self.emitter.emit_label(closure_end)
         self.emitter.load_from_stack(closure_stack_index)
 
@@ -216,26 +216,25 @@ class Compiler(object):
         self.emitter.save_on_stack(stack_index)
         closure_stack_index = stack_index
         stack_index -= Compiler.WORDSIZE
-        self.emitter.emit_stmt('    movq {0}(%rax), %rax'.
-                               format(Compiler.WORDSIZE))
+        self.emitter.mov(offset(RAX, Compiler.WORDSIZE), RAX)
         self.emitter.save_on_stack(stack_index)
         function_stack_index = stack_index
         stack_index -= Compiler.WORDSIZE
         self.emit_application_arguments(args, env, stack_index)
 
-        self.emitter.emit_stmt('    movq %rbx, %rax')
+        self.emitter.mov(RBX, RAX)
         self.emitter.save_on_stack(stack_index)
         env_stack_index = stack_index
         self.emitter.load_from_stack(closure_stack_index)
-        self.emitter.emit_stmt('    movq %rax, %rbx')
+        self.emitter.mov(RAX, RBX)
         self.emitter.load_from_stack(function_stack_index)
         self.emitter.adjust_base(stack_index + Compiler.WORDSIZE)
-        self.emitter.emit_stmt('    call *%rax')
+        self.emitter.call(dereference(RAX))
         self.emitter.adjust_base(- (stack_index + Compiler.WORDSIZE))
         stack_index -= Compiler.WORDSIZE
         self.emitter.save_on_stack(stack_index)
         self.emitter.load_from_stack(env_stack_index)
-        self.emitter.emit_stmt('    movq %rax, %rbx')
+        self.emitter.mov(RAX, RBX)
         self.emitter.load_from_stack(stack_index)
 
     def emit_application_arguments(self, args, env, stack_index):
