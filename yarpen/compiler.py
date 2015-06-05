@@ -133,10 +133,13 @@ class Compiler(object):
         return integer << Compiler.INT_SHIFT
 
     def compile_variable_reference(self, expr, env, stack_index):
+        variable_index = env.get_var(expr)
+        if not variable_index:
+            raise Exception("Undefined variable %s" % expr)
         if isinstance(expr, YarpenSymbol):
-            self.load_from_stack(env.get_var(expr))
+            self.load_from_stack(variable_index)
         else:
-            index = env.get_var(expr) * Compiler.WORDSIZE
+            index = variable_index * Compiler.WORDSIZE
             self.emitter.mov(offset(RBX, index), RAX)
 
     def compile_if(self, expr, env, stack_index):
