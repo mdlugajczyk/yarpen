@@ -1,8 +1,8 @@
 from parser import Parser
 from emitter import Emitter
-from expression import YarpenSymbol, YarpenFreeVarRef
+from expression import YarpenSymbol, YarpenFreeVarRef, begin_expressions
 from expression import is_number, is_boolean, is_closure, is_free_var_reference
-from expression import is_application, is_variable, is_tagged_list
+from expression import is_application, is_variable, is_tagged_list, is_begin
 from expression import if_condition, if_conseq, is_if, if_alternative
 from environment import Environment
 from desugar import desugar
@@ -39,14 +39,14 @@ class Compiler(object):
         closure_converted = [closure_converter.closure_convert(exp)
                              for exp in desugared_exprs]
         self.emitter.entry_point_preamble("pyscm_start")
-        self.compile_exprs(closure_converted)
+        self.compile_exprs(closure_converted, Environment(),
+                           -Compiler.WORDSIZE)
         self.emitter.ret()
         return self.emitter.emit()
 
-    def compile_exprs(self, exprs):
-        env = Environment()
+    def compile_exprs(self, exprs, env, stack_index):
         for expr in exprs:
-            self.compile_expr(expr, env, -Compiler.WORDSIZE)
+            self.compile_expr(expr, env, stack_index)
 
     def compile_expr(self, expr, env, stack_index):
         if is_number(expr):
@@ -61,6 +61,8 @@ class Compiler(object):
             self.compile_primitive_function(expr, env, stack_index)
         elif is_closure(expr):
             self.compile_closure(expr, env, stack_index)
+        elif is_begin(expr):
+            self.compile_begin(expr, env, stack_index)
         elif is_application(expr):
             return self.compile_application(expr, env, stack_index)
         else:
@@ -153,6 +155,9 @@ class Compiler(object):
         self.emitter.label(cond_false_label)
         self.compile_expr(if_alternative(expr), env, stack_index)
         self.emitter.label(if_end_label)
+
+    def compile_begin(self, expr, env, stack_index):
+        self.compile_exprs(begin_expressions(expr), env, stack_index)
 
     def alloc_memory(self, stack_index, size):
         self.adjust_base(stack_index + Compiler.WORDSIZE)

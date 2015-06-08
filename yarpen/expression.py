@@ -129,6 +129,10 @@ def make_lambda(args, body):
     return YarpenList([YarpenSymbol("lambda"), YarpenList(args), body])
 
 
+def begin_expressions(expr):
+    return expr.expressions[1:]
+
+
 def is_application(expression):
     return isinstance(expression, YarpenList)
 
@@ -175,6 +179,10 @@ def if_alternative(expr):
 
 def is_closure(expr):
     return isinstance(expr, YarpenClosure)
+
+
+def is_begin(expr):
+    return is_tagged_list(expr, YarpenSymbol("begin"))
 
 
 def is_tagged_list(expr, tag):

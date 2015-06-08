@@ -116,4 +116,8 @@ add_group("lambda",
                      (h (lambda (x) (fx- x 1))))
                   (h (g (f 10))))""", "21")])
 
+add_group("begin",
+          [("(begin 1 2)", "2"),
+           ("(begin #t #f)", "#f")])
+
 run_tests()
