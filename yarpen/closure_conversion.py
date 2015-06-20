@@ -1,8 +1,9 @@
-from expression import YarpenFreeVarRef, YarpenList, YarpenClosure
-from expression import is_number, is_boolean, is_lambda, lambda_args, is_if
-from expression import lambda_body, is_application, is_variable, if_condition
-from expression import if_conseq, if_alternative, make_lambda
-from expression import is_begin, make_begin, begin_expressions
+
+from .expression import YarpenFreeVarRef, YarpenList, YarpenClosure
+from .expression import is_number, is_boolean, is_lambda, lambda_args, is_if
+from .expression import lambda_body, is_application, is_variable, if_condition
+from .expression import if_conseq, if_alternative, make_lambda
+from .expression import is_begin, make_begin, begin_expressions
 
 
 class ClosureConverter(object):

@@ -1,5 +1,6 @@
-from tokens import LParen, RParen, Quote, Boolean, Hash, Symbol, Number
-from tokens import NoTokens
+
+from .tokens import LParen, RParen, Quote, Boolean, Hash, Symbol, Number
+from .tokens import NoTokens
 import re
 
 

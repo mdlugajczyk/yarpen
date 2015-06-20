@@ -1,7 +1,8 @@
-from expression import is_let, let_body, let_bindings, YarpenList, make_lambda
-from expression import is_if, is_lambda, is_application, make_if, lambda_body
-from expression import if_condition, if_conseq, if_alternative, lambda_args
-from expression import is_begin, make_begin, begin_expressions
+
+from .expression import is_let, let_body, let_bindings, YarpenList, make_lambda
+from .expression import is_if, is_lambda, is_application, make_if, lambda_body
+from .expression import if_condition, if_conseq, if_alternative, lambda_args
+from .expression import is_begin, make_begin, begin_expressions
 
 
 def desugar(exp):

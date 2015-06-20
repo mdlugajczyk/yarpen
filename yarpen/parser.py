@@ -1,8 +1,9 @@
-from expression import YarpenList, YarpenNumber, YarpenQuoted, YarpenBoolean
-from expression import YarpenSymbol
-from tokens import LParen, RParen, Quote, Boolean, Symbol, Number
-from tokens import NoTokens
-from tokenizer import Tokenizer
+
+from .expression import YarpenList, YarpenNumber, YarpenQuoted, YarpenBoolean
+from .expression import YarpenSymbol
+from .tokens import LParen, RParen, Quote, Boolean, Symbol, Number
+from .tokens import NoTokens
+from .tokenizer import Tokenizer
 
 
 class Parser:

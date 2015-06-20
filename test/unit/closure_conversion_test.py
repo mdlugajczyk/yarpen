@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from yarpen.closure_conversion import ClosureConverter
 from yarpen.expression import YarpenSymbol, YarpenNumber, YarpenBoolean
 from yarpen.expression import YarpenClosure, YarpenFreeVarRef, YarpenList

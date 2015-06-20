@@ -1,14 +1,15 @@
-from parser import Parser
-from emitter import Emitter
-from expression import YarpenSymbol, YarpenFreeVarRef, begin_expressions
-from expression import is_number, is_boolean, is_closure, is_free_var_reference
-from expression import is_application, is_variable, is_tagged_list, is_begin
-from expression import if_condition, if_conseq, is_if, if_alternative
-from environment import Environment
-from desugar import desugar
-from closure_conversion import ClosureConverter
-from registers import RAX, RBX, RDX, RDI, RSP, AL, offset, immediate_const
-from registers import dereference
+
+from .parser import Parser
+from .emitter import Emitter
+from .expression import YarpenSymbol, YarpenFreeVarRef, begin_expressions
+from .expression import is_number, is_boolean, is_closure, is_free_var_reference
+from .expression import is_application, is_variable, is_tagged_list, is_begin
+from .expression import if_condition, if_conseq, is_if, if_alternative
+from .environment import Environment
+from .desugar import desugar
+from .closure_conversion import ClosureConverter
+from .registers import RAX, RBX, RDX, RDI, RSP, AL, offset, immediate_const
+from .registers import dereference
 
 
 class Compiler(object):

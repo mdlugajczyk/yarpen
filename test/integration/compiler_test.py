@@ -1,7 +1,9 @@
+from __future__ import absolute_import
+from __future__ import print_function
 import sys
 sys.path.insert(0, '.')
 
-from subprocess import call, check_output
+from subprocess import call, getoutput
 from yarpen.compiler import Compiler
 
 tests = []
@@ -20,7 +22,7 @@ def add_group(name, tests):
 
 def run_tests():
     for test in reversed(tests):
-        print("Working on test: %s" % test[0])
+        print(("Working on test: %s" % test[0]))
         compiler = Compiler(test[1])
         code = compiler.compile()
         with open("yarpen_code.s", "w") as f:
@@ -31,10 +33,10 @@ def run_tests():
             print("Failed to compile test.")
             break
 
-        output = check_output("./yarpen_test")
+        output = getoutput("./yarpen_test")
         if output != test[2]:
-            print("Test failed. Expected %s got %s\nCode: %s"
-                  % (test[2], output, test[1]))
+            print(("Test failed. Expected %s got %s\nCode: %s"
+                  % (test[2], output, test[1])))
             break
 
 add_group("Integers", [("1", "1"),

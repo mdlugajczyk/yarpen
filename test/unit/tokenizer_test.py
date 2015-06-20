@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from yarpen.tokens import LParen, RParen, Quote, Hash, NoTokens
 from yarpen.tokenizer import Tokenizer
 import unittest
