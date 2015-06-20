@@ -120,7 +120,7 @@ def lambda_args(expr):
 
 
 def lambda_body(expr):
-    return expr.expressions[2]
+    return make_begin(expr.expressions[2:])
 
 
 def make_lambda(args, body):
@@ -129,6 +129,10 @@ def make_lambda(args, body):
 
 def begin_expressions(expr):
     return expr.expressions[1:]
+
+
+def make_begin(exprs):
+    return YarpenList([YarpenSymbol("begin")] + exprs)
 
 
 def is_application(expression):
@@ -161,7 +165,7 @@ def let_bindings(expr):
 
 
 def let_body(expr):
-    return expr.expressions[2]
+    return make_begin(expr.expressions[2:])
 
 
 def if_condition(expr):

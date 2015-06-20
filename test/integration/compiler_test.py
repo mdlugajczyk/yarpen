@@ -114,7 +114,8 @@ add_group("lambda",
            ("""(let ((f (lambda (x) (fx+ x 1)))
                      (g (lambda (x) (fx+ x x)))
                      (h (lambda (x) (fx- x 1))))
-                  (h (g (f 10))))""", "21")])
+                  (h (g (f 10))))""", "21"),
+           ("(let () 1 (fx+ 2 1))", "3")])
 
 add_group("begin",
           [("(begin 1 2)", "2"),

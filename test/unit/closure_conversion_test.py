@@ -1,6 +1,7 @@
 from yarpen.closure_conversion import ClosureConverter
 from yarpen.expression import YarpenSymbol, YarpenNumber, YarpenBoolean
 from yarpen.expression import YarpenClosure, YarpenFreeVarRef, YarpenList
+from yarpen.expression import make_begin
 from yarpen.parser import Parser
 from unittest import TestCase
 
@@ -72,38 +73,38 @@ class ClosureConversionTest(TestCase):
     def test_closure_convert_lambda_without_variables(self):
         lambda_exp = Parser("(lambda () 3)").parse()[0]
         self.assertEqual(self.converter.closure_convert(lambda_exp),
-                         YarpenClosure(YarpenNumber(3), [], []))
+                         YarpenClosure(make_begin([YarpenNumber(3)]), [], []))
 
     def test_closure_convert_lambda_without_free_variables(self):
         lambda_exp = Parser("(lambda (x) x)").parse()[0]
         self.assertEqual(self.converter.closure_convert(lambda_exp),
-                         YarpenClosure(YarpenSymbol("x"), [],
-                                      [YarpenSymbol("x")]))
+                         YarpenClosure(make_begin([YarpenSymbol("x")]), [],
+                                       [YarpenSymbol("x")]))
 
     def test_closure_convert_lambda_with_variables(self):
         lambda_exp = Parser("(lambda (x) (f x))").parse()[0]
         closure_converted_body = YarpenList([YarpenFreeVarRef("f"),
                                             YarpenSymbol("x")])
         self.assertEqual(self.converter.closure_convert(lambda_exp),
-                         YarpenClosure(closure_converted_body,
-                                      [YarpenSymbol("f")],
-                                      [YarpenSymbol("x")]))
+                         YarpenClosure(make_begin([closure_converted_body]),
+                                       [YarpenSymbol("f")],
+                                       [YarpenSymbol("x")]))
 
     def test_closure_convert_nested_lambda(self):
         exp = "(lambda (y) (lambda (x) (f x ((lambda (f) f) y))))"
         lambda_exp = Parser(exp).parse()[0]
-        most_inner_closure = YarpenClosure(YarpenSymbol("f"),
-                                          [],
-                                          [YarpenSymbol("f")])
-        inner_closure_body = YarpenList([YarpenFreeVarRef("f"),
+        most_inner_closure = YarpenClosure(make_begin([YarpenSymbol("f")]),
+                                           [],
+                                           [YarpenSymbol("f")])
+        inner_closure_body = make_begin([YarpenList([YarpenFreeVarRef("f"),
                                         YarpenSymbol("x"),
                                         YarpenList([most_inner_closure,
-                                                   YarpenFreeVarRef("y")])])
+                                                   YarpenFreeVarRef("y")])])])
         inner_closure = YarpenClosure(inner_closure_body,
-                                     [YarpenSymbol("f"), YarpenSymbol("y")],
-                                     [YarpenSymbol("x")])
-        outer_closure = YarpenClosure(inner_closure,
-                                     [YarpenSymbol("f")],
-                                     [YarpenSymbol("y")])
+                                      [YarpenSymbol("f"), YarpenSymbol("y")],
+                                      [YarpenSymbol("x")])
+        outer_closure = YarpenClosure(make_begin([inner_closure]),
+                                      [YarpenSymbol("f")],
+                                      [YarpenSymbol("y")])
         self.assertEqual(self.converter.closure_convert(lambda_exp),
                          outer_closure)

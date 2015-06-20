@@ -66,7 +66,7 @@ class Compiler(object):
         elif is_application(expr):
             return self.compile_application(expr, env, stack_index)
         else:
-            raise Exception("Unknow expression %s", expr)
+            raise Exception("Unknow expression %s %s", expr, type(expr))
 
     def compile_number(self, num):
         self.emitter.mov(immediate_const(self.int_repr(num.number)), RAX)
