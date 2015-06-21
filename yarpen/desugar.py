@@ -15,8 +15,6 @@ def desugar(exp):
     elif is_lambda(exp):
         return make_lambda(lambda_args(exp),
                            desugar(lambda_body(exp)))
-    elif is_begin(exp):
-        return make_begin([desugar(e) for e in begin_expressions(exp)])
     elif is_application(exp):
         return YarpenList([desugar(e) for e in exp.expressions])
     else:
