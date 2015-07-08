@@ -139,13 +139,10 @@ class Compiler(object):
 
     def compile_variable_reference(self, expr, env, stack_index):
         variable_index = env.get_var(expr)
-        if not variable_index:
-            raise Exception("Undefined variable %s" % expr)
         if isinstance(expr, YarpenSymbol):
             self.load_from_stack(variable_index)
         else:
-            index = variable_index * Compiler.WORDSIZE
-            self.emitter.mov(offset(RBX, index), RAX)
+            self.emitter.mov(offset(RBX, variable_index), RAX)
 
     def compile_if(self, expr, env, stack_index):
         cond_false_label = self.label_generator.unique_label("false_branch")
@@ -165,14 +162,10 @@ class Compiler(object):
     def compile_assignment(self, expr, env, stack_index):
         self.compile_expr(assignment_value(expr), env, stack_index)
         variable_index = env.get_var(assignment_variable(expr))
-        if not variable_index:
-            raise Exception("Undefined variable %s" % expr)
         if isinstance(assignment_variable(expr), YarpenSymbol):
             self.save_on_stack(variable_index)
         else:
-            index = variable_index * Compiler.WORDSIZE
-            self.emitter.mov(RAX, offset(RBX, index))
-        env.set_var(assignment_variable(expr), variable_index)
+            self.emitter.mov(RAX, offset(RBX, variable_index))
 
     def alloc_memory(self, stack_index, size):
         self.adjust_base(stack_index + Compiler.WORDSIZE)
@@ -213,10 +206,10 @@ class Compiler(object):
         self.emitter.mov(RAX, RDX)
         for fv in expr.free_variables:
             self.compile_variable_reference(fv, env, stack_index)
-            self.emitter.mov(RAX,
-                             offset(RDX, var_offset * Compiler.WORDSIZE))
+            index = var_offset * Compiler.WORDSIZE
+            self.emitter.mov(RAX, offset(RDX, index))
             closure_env = closure_env.extend(YarpenFreeVarRef(fv.symbol),
-                                             var_offset)
+                                             index)
             var_offset += 1
 
         self.emitter.jmp(closure_end)

@@ -7,7 +7,7 @@ class EnvironmentTest(TestCase):
 
     def test_returns_none_for_non_existent_variable(self):
         env = Environment()
-        self.assertEqual(env.get_var("foo"), None)
+        self.assertRaises(KeyError, env.get_var, "foo")
 
     def test_extend_new(self):
         env = Environment()

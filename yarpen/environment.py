@@ -8,7 +8,7 @@ class Environment:
             return self.bindings[var]
         if self.parent:
             return self.parent.get_var(var)
-        return None
+        raise KeyError("Undefined variable %s" % var)
 
     def set_var(self, var, val):
         self.bindings[var] = val
