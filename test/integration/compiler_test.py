@@ -123,4 +123,28 @@ add_group("begin",
           [("(begin 1 2)", "2"),
            ("(begin #t #f)", "#f")])
 
+add_group("set!",
+          [("""(let ((x 1))
+          (set! x (fx+ x 1))
+              x)""", "2"),
+           ("""(let ((x 1))
+               (let ((x 2))
+                   (set! x 3)
+                   x)
+               x)""", "1")])
+
+
+add_group("closures",
+          [("""(let ((counter-generator (lambda ()
+                     (let ((cnt 0))
+                         (lambda ()
+                           (set! cnt (fx+ cnt 1))
+                           cnt)))))
+  (let ((cnt1 (counter-generator))
+        (cnt2 (counter-generator)))
+    (cnt1)
+    (cnt1)
+    (cnt1)
+    (cnt2)))""", "1")])
+
 run_tests()

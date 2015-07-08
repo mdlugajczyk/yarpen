@@ -1,10 +1,10 @@
-
 from .parser import Parser
 from .emitter import Emitter
-from .expression import YarpenSymbol, YarpenFreeVarRef, begin_expressions
-from .expression import is_number, is_boolean, is_closure, is_free_var_reference
+from .expression import YarpenSymbol, YarpenFreeVarRef, is_free_var_reference
+from .expression import is_number, is_boolean, is_closure, begin_expressions
 from .expression import is_application, is_variable, is_tagged_list, is_begin
 from .expression import if_condition, if_conseq, is_if, if_alternative
+from .expression import is_assignment, assignment_variable, assignment_value
 from .environment import Environment
 from .desugar import desugar
 from .closure_conversion import ClosureConverter
@@ -64,6 +64,8 @@ class Compiler(object):
             self.compile_closure(expr, env, stack_index)
         elif is_begin(expr):
             self.compile_begin(expr, env, stack_index)
+        elif is_assignment(expr):
+            self.compile_assignment(expr, env, stack_index)
         elif is_application(expr):
             return self.compile_application(expr, env, stack_index)
         else:
@@ -159,6 +161,18 @@ class Compiler(object):
 
     def compile_begin(self, expr, env, stack_index):
         self.compile_exprs(begin_expressions(expr), env, stack_index)
+
+    def compile_assignment(self, expr, env, stack_index):
+        self.compile_expr(assignment_value(expr), env, stack_index)
+        variable_index = env.get_var(assignment_variable(expr))
+        if not variable_index:
+            raise Exception("Undefined variable %s" % expr)
+        if isinstance(assignment_variable(expr), YarpenSymbol):
+            self.save_on_stack(variable_index)
+        else:
+            index = variable_index * Compiler.WORDSIZE
+            self.emitter.mov(RAX, offset(RBX, index))
+        env.set_var(assignment_variable(expr), variable_index)
 
     def alloc_memory(self, stack_index, size):
         self.adjust_base(stack_index + Compiler.WORDSIZE)

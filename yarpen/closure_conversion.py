@@ -2,8 +2,9 @@
 from .expression import YarpenFreeVarRef, YarpenList, YarpenClosure
 from .expression import is_number, is_boolean, is_lambda, lambda_args, is_if
 from .expression import lambda_body, is_application, is_variable, if_condition
-from .expression import if_conseq, if_alternative, make_lambda
+from .expression import if_conseq, if_alternative, make_lambda, make_assignment
 from .expression import is_begin, make_begin, begin_expressions
+from .expression import is_assignment, assignment_variable, assignment_value
 
 
 class ClosureConverter(object):
@@ -19,6 +20,9 @@ class ClosureConverter(object):
         elif is_begin(exp):
             return make_begin([self.closure_convert(e)
                                for e in begin_expressions(exp)])
+        elif is_assignment(exp):
+            return make_assignment(assignment_variable(exp),
+                                   self.closure_convert(assignment_value(exp)))
         elif is_application(exp):
             res = YarpenList([self.closure_convert(e)
                               for e in exp.expressions])
@@ -71,6 +75,8 @@ class ClosureConverter(object):
         elif is_begin(expr):
             fv = [self.free_variables(exp) for exp in begin_expressions(expr)]
             return [x for y in fv for x in y]
+        elif is_assignment(expr):
+            return self.free_variables(assignment_value(expr))
         elif is_application(expr):
             fv = [self.free_variables(exp) for exp in expr.expressions]
             return [x for y in fv for x in y]

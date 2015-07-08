@@ -10,6 +10,9 @@ class Environment:
             return self.parent.get_var(var)
         return None
 
+    def set_var(self, var, val):
+        self.bindings[var] = val
+
     def extend(self, var, val):
         return Environment(bindings={var: val},
                            parent=self)

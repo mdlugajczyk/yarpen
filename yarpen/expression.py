@@ -188,6 +188,22 @@ def is_begin(expr):
     return is_tagged_list(expr, YarpenSymbol("begin"))
 
 
+def is_assignment(expr):
+    return is_tagged_list(expr, YarpenSymbol("set!"))
+
+
+def make_assignment(var, val):
+    return YarpenList([YarpenSymbol("set!"), var, val])
+
+
+def assignment_variable(expr):
+    return expr.expressions[1]
+
+
+def assignment_value(expr):
+    return expr.expressions[2]
+
+
 def is_tagged_list(expr, tag):
     return (isinstance(expr, YarpenList) and len(expr.expressions) > 0
             and expr.expressions[0] == tag)
