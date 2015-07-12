@@ -147,4 +147,19 @@ add_group("closures",
     (cnt1)
     (cnt2)))""", "1")])
 
+
+add_group("many arguments",
+          [("""(let ((f (lambda (a b c d e f g h i j k l m)
+                        (fx+ a (fx+ b (fx+ c (fx+ d (fx+ e (fx+ f (fx+ g (fx+ h (fx+ i (fx+ j (fx+ k (fx+ l m)))))))))))))))
+            (f 1 2 3 4 5 6 7 8 9 10 11 12 13))""",
+            "91"),
+          ("""(let ((x 1)
+          (y 2)
+          (z 3)
+          (a 4)
+          (b 5)
+          (c 6)
+          (d 7))
+          (fx+ x (fx+ y (fx+ z (fx+ a (fx+ b (fx+ c d)))))))""", "28")])
+
 run_tests()
