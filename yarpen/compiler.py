@@ -253,8 +253,8 @@ class Compiler(object):
         self.adjust_base(- (stack_index + Compiler.WORDSIZE))
 
     def compile_application(self, expr, env, stack_index, tail_position):
+        closure_si = self.emit_closure(expr, env, stack_index)
         if tail_position:
-            closure_si = self.emit_closure(expr, env, stack_index)
             stack_index = self.emit_application_arguments(expr.expressions[1:],
                                                           env, stack_index)
             # let's load the closure from stack to rbx, otherwise it
@@ -263,7 +263,7 @@ class Compiler(object):
             self.load_from_stack(closure_si)
             self.emitter.mov(RAX, RBX)
             delta = - (stack_index + Compiler.WORDSIZE)
-            src = stack_index + ((len(expr.expressions) - 2) * Compiler.WORDSIZE)
+            src = stack_index + ((len(expr.expressions[1:]) - 1) * Compiler.WORDSIZE)
             dst = stack_index+delta
             for arg in expr.expressions[1:]:
                 self.load_from_stack(src)
@@ -273,7 +273,6 @@ class Compiler(object):
             self.emitter.mov(offset(RBX, Compiler.WORDSIZE), RAX)
             self.emitter.jmp(dereference(RAX))
         else:
-            closure_si = self.emit_closure(expr, env, stack_index)
             stack_index -= Compiler.WORDSIZE
             self.emit_application_arguments(expr.expressions[1:],
                                             env, stack_index)
