@@ -145,7 +145,19 @@ add_group("closures",
     (cnt1)
     (cnt1)
     (cnt1)
-    (cnt2)))""", "1")])
+    (cnt2)))""", "1"),
+           ("""(let ((Y (lambda (X)
+    ((lambda (procedure)
+       (X (lambda (arg) ((procedure procedure) arg))))
+     (lambda (procedure)
+       (X (lambda (arg) ((procedure procedure) arg))))))))
+  (let ((F* (lambda (func-arg)
+	    (lambda (n)
+	      (if (zero? n)
+		  1
+		  (fx* n (func-arg (fx- n 1))))))))
+  (let ((fact
+	 (Y F*))) (fact 5))))""", "120")])
 
 
 add_group("many arguments",
@@ -162,18 +174,6 @@ add_group("many arguments",
           (d 7))
           (fx+ x (fx+ y (fx+ z (fx+ a (fx+ b (fx+ c d)))))))""", "28")])
 
-add_group("y combinator",
-          [("""(let ((Y (lambda (X)
-    ((lambda (procedure)
-       (X (lambda (arg) ((procedure procedure) arg))))
-     (lambda (procedure)
-       (X (lambda (arg) ((procedure procedure) arg))))))))
-  (let ((F* (lambda (func-arg)
-	    (lambda (n)
-	      (if (zero? n)
-		  1
-		  (fx* n (func-arg (fx- n 1))))))))
-  (let ((fact
-	 (Y F*))) (fact 5))))""", "120")])
+
 
 run_tests()
