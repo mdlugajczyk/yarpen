@@ -2,6 +2,7 @@
 from .expression import is_let, let_body, let_bindings, YarpenList, make_lambda
 from .expression import is_if, is_lambda, is_application, make_if, lambda_body
 from .expression import if_condition, if_conseq, if_alternative, lambda_args
+from .expression import make_begin
 
 
 def desugar(exp):
@@ -34,6 +35,6 @@ can be transformed into an application of lambda expression:
     bindings = let_bindings(exp)
     args = [b.expressions[0] for b in bindings]
     args_values = [desugar(b.expressions[1]) for b in bindings]
-    body = desugar(let_body(exp))
+    body = make_begin([desugar(e) for e in let_body(exp)])
     new_lambda = make_lambda(args, body)
     return YarpenList([new_lambda] + args_values)

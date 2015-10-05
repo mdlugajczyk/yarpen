@@ -165,7 +165,7 @@ def let_bindings(expr):
 
 
 def let_body(expr):
-    return make_begin(expr.expressions[2:])
+    return expr.expressions[2:]
 
 
 def if_condition(expr):

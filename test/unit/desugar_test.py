@@ -27,6 +27,12 @@ class DesugarTest(TestCase):
                                YarpenNumber(3), YarpenNumber(4)])
         self.assertEqual(desugared_exp, expected)
 
+    def test_desugar_nested_let(self):
+        expr = Parser("(let ((x 1)) (let ((y 2)) (+ x y)))").parse()[0]
+        desugared_expr = desugar(expr)
+        expected = Parser("((lambda (x) (begin ((lambda (y) (begin (+ x y))) 2))) 1)").parse()[0]
+        self.assertEqual(desugared_expr, expected)
+
     def test_desugar_let_wtih_multiple_exprs_in_body(self):
         expr = Parser("(let () 1 2)").parse()[0]
         desugared_exp = desugar(expr)
