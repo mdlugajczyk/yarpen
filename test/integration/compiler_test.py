@@ -174,6 +174,8 @@ add_group("many arguments",
           (d 7))
           (fx+ x (fx+ y (fx+ z (fx+ a (fx+ b (fx+ c d)))))))""", "28")])
 
-
+add_group("let*",
+          [("(let* ((x 1) (y (fx+ x x))) y)", "2"),
+           ("(let* ((x 1) (y (fx+ x x)) (z (fx+ y y ))) z)", "4")])
 
 run_tests()

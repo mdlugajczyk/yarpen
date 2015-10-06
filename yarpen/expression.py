@@ -155,6 +155,16 @@ def make_if(cond, cons, alter):
     return YarpenList([YarpenSymbol("if"), cond, cons, alter])
 
 
+def make_let(bindings, body):
+    if isinstance(body, YarpenList):
+        return YarpenList([YarpenSymbol("let"), YarpenList([bindings]), body])
+    return YarpenList([YarpenSymbol("let"), YarpenList([bindings])] + body)
+
+
+def is_let_star(expr):
+    return is_tagged_list(expr, YarpenSymbol("let*"))
+
+
 def is_let(expr):
     return is_tagged_list(expr, YarpenSymbol("let"))
 
