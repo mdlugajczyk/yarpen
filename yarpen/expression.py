@@ -83,7 +83,7 @@ class YarpenClosure(object):
                 and self.parameters == other.parameters)
 
     def __repr__(self):
-        return "Closure: (%s) (%s) (%s)" % (self.body, self.free_variables,
+        return "Closure: (BODY %s) (FREE %s) (PARAMS %s)" % (self.body, self.free_variables,
                                             self.parameters)
 
 
@@ -159,6 +159,10 @@ def make_let(bindings, body):
     if isinstance(body, YarpenList):
         return YarpenList([YarpenSymbol("let"), YarpenList([bindings]), body])
     return YarpenList([YarpenSymbol("let"), YarpenList([bindings])] + body)
+
+
+def is_letrec(expr):
+    return is_tagged_list(expr, YarpenSymbol("letrec"))
 
 
 def is_let_star(expr):

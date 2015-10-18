@@ -1,10 +1,13 @@
 from .expression import is_let, let_body, let_bindings, YarpenList, make_lambda
 from .expression import is_if, is_lambda, is_application, make_if, lambda_body
 from .expression import if_condition, if_conseq, if_alternative, lambda_args
-from .expression import is_let_star, make_let, make_begin
+from .expression import is_let_star, make_let, make_begin, is_letrec
+from .expression import make_assignment, YarpenNumber, YarpenSymbol
 
 
 def desugar(exp):
+    if is_letrec(exp):
+        return desugar_letrec(exp)
     if is_let_star(exp):
         return desugar_let_star(exp)
     if is_let(exp):
@@ -20,6 +23,14 @@ def desugar(exp):
         return YarpenList([desugar(e) for e in exp.expressions])
     else:
         return exp
+
+def desugar_letrec(exp):
+    bindings = let_bindings(exp)
+    sets = [make_assignment(b.expressions[0], b.expressions[1]) for b in bindings]
+    dummy_bindings = [YarpenList([b.expressions[0], YarpenNumber(0)]) for b in bindings]
+    return desugar_let(YarpenList([YarpenSymbol("let"),
+                                   YarpenList(dummy_bindings)]+
+                                  sets + let_body(exp)))
 
 def desugar_let_star(exp):
     return desugar_let(transform_let_star_to_let(let_bindings(exp), let_body(exp)))

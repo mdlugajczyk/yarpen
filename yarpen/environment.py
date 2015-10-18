@@ -16,3 +16,6 @@ class Environment:
     def extend(self, var, val):
         return Environment(bindings={var: val},
                            parent=self)
+
+    def __repr__(self):
+        return self.bindings.__repr__() + self.parent.__repr__()

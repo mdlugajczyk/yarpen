@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from unittest import TestCase
 from yarpen.parser import Parser
 from yarpen.desugar import desugar
+import unittest
 
 
 class DesugarTest(TestCase):
@@ -35,3 +36,12 @@ class DesugarTest(TestCase):
         desugared_exp = desugar(expr)
         expected = desugar(Parser("(let ((x 1)) (let ((y (+ x 1))) y))").parse()[0])
         self.assertEqual(desugared_exp, expected)
+
+    def test_desugar_letrec(self):
+        expr = Parser("(letrec ((x 1) (y 2)) (+ x y))").parse()[0]
+        expected = Parser("((lambda (x y) (begin (set! x 1) (set! y 2) (+ x y))) 0 0)").parse()[0]
+        desugared = desugar(expr)
+        self.assertEqual(desugared, expected)
+
+if __name__ == '__main__':
+    unittest.main()
