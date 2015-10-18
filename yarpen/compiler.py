@@ -167,11 +167,14 @@ class Compiler(object):
                            stack_index, tail_position)
 
     def compile_assignment(self, expr, env, stack_index):
+        self.emitter.comment("Assignment: " + str(expr))
         self.compile_expr(assignment_value(expr), env, stack_index, None)
         variable_index = env.get_var(assignment_variable(expr))
         if isinstance(assignment_variable(expr), YarpenSymbol):
+            self.emitter.comment("Saving bound variable: " + str(assignment_variable(expr)))
             self.save_on_stack(variable_index)
         else:
+            self.emitter.comment("Saving free variable: " + str(assignment_variable(expr)))
             self.emitter.mov(RAX, offset(RBX, variable_index))
 
     def alloc_memory(self, stack_index, size):

@@ -74,3 +74,6 @@ class Emitter(object):
 
     def lea(self, label, register):
         self.binary_instruction('lea', label, register)
+
+    def comment(self, comment):
+        self.emit_stmt("# " + comment)
