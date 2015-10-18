@@ -145,8 +145,10 @@ class Compiler(object):
     def compile_variable_reference(self, expr, env, stack_index):
         variable_index = env.get_var(expr)
         if isinstance(expr, YarpenSymbol):
+            self.emitter.comment("Loading bound variable: " + str(expr))
             self.load_from_stack(variable_index)
         else:
+            self.emitter.comment("Loading free variable: " + str(expr))
             self.emitter.mov(offset(RBX, variable_index), RAX)
 
     def compile_if(self, expr, env, stack_index, tail_position):
@@ -167,9 +169,10 @@ class Compiler(object):
                            stack_index, tail_position)
 
     def compile_assignment(self, expr, env, stack_index):
-        self.emitter.comment("Assignment: " + str(expr))
-        self.compile_expr(assignment_value(expr), env, stack_index, None)
         variable_index = env.get_var(assignment_variable(expr))
+        self.emitter.comment('Assignment to variable: {0} at index: {1} in env: {2}'.format(str(expr), variable_index, env))
+        self.compile_expr(assignment_value(expr), env, stack_index, None)
+        self.emitter.comment("Done with assignment to " + str(assignment_variable(expr)))
         if isinstance(assignment_variable(expr), YarpenSymbol):
             self.emitter.comment("Saving bound variable: " + str(assignment_variable(expr)))
             self.save_on_stack(variable_index)
@@ -200,6 +203,7 @@ class Compiler(object):
         self.emitter.mov(RDI, offset(RAX, Compiler.WORDSIZE))
 
     def compile_closure(self, expr, env, stack_index, tail_position):
+        self.emitter.comment("Compiling closure: " + str(expr) + " in env " + str(env))
         args = expr.parameters
         body = expr.body
         closure_env, si = self.extend_env_for_closure(args, env,
@@ -207,14 +211,17 @@ class Compiler(object):
         closure_label = self.label_generator.unique_label("closure")
         closure_end = self.label_generator.unique_label("closure_end")
 
+        self.emitter.comment("Allocating closure.")
         self.alloc_closure(stack_index, len(expr.free_variables),
                            closure_label)
+        self.emitter.comment("Done allocating closure. Saving it on stack.")
         self.save_on_stack(stack_index)
         closure_stack_index = stack_index
         stack_index -= Compiler.WORDSIZE
         var_offset = 2
         self.emitter.mov(RAX, RDX)
         for fv in expr.free_variables:
+            self.emitter.comment("Compiling free variable: " + str(fv))
             self.compile_variable_reference(fv, env, stack_index)
             index = var_offset * Compiler.WORDSIZE
             self.emitter.mov(RAX, offset(RDX, index))
@@ -224,6 +231,7 @@ class Compiler(object):
 
         self.emitter.jmp(closure_end)
         self.emitter.function_header(closure_label)
+        self.emitter.comment("Compiling closure body: " + closure_label + " " + str(expr))
         self.compile_expr(body, closure_env, si, tail_position)
         self.emitter.ret()
         self.emitter.label(closure_end)
@@ -256,18 +264,22 @@ class Compiler(object):
         self.adjust_base(- (stack_index + Compiler.WORDSIZE))
 
     def compile_application(self, expr, env, stack_index, tail_position):
+        self.emitter.comment("Application: " + str(expr) + " is tail position: " + str(tail_position))
         closure_si = self.emit_closure(expr, env, stack_index)
         if tail_position:
+            self.emitter.comment("Emit args.")
             stack_index = self.emit_application_arguments(expr.expressions[1:],
                                                           env, stack_index)
             # let's load the closure from stack to rbx, otherwise it
             # would be overwritten. we don't need to preserve old rbx,
             # as this is tail call.
+            self.emitter.comment("Load closure from stack.")
             self.load_from_stack(closure_si)
             self.emitter.mov(RAX, RBX)
             delta = - (stack_index + Compiler.WORDSIZE)
             src = stack_index + ((len(expr.expressions[1:]) - 1) * Compiler.WORDSIZE)
             dst = stack_index+delta
+            self.emitter.comment("Shift arguments")
             for arg in expr.expressions[1:]:
                 self.load_from_stack(src)
                 self.save_on_stack(dst)
@@ -277,6 +289,7 @@ class Compiler(object):
             self.emitter.jmp(dereference(RAX))
         else:
             stack_index -= Compiler.WORDSIZE
+            self.emitter.comment("Emit args.")
             self.emit_application_arguments(expr.expressions[1:],
                                             env, stack_index)
             closure_register_si = self.save_closure_register(stack_index)
