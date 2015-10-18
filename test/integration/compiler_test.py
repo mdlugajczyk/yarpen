@@ -157,7 +157,11 @@ add_group("closures",
 		  1
 		  (fx* n (func-arg (fx- n 1))))))))
   (let ((fact
-	 (Y F*))) (fact 5))))""", "120")])
+   (Y F*))) (fact 5))))""", "120"),
+           ("""(let ((x 3))
+                 (let ((y (lambda () x)))
+                   (set! x 5)
+                   (y)))""", "5")])
 
 
 add_group("many arguments",
