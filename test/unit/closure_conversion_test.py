@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from yarpen.closure_conversion import ClosureConverter
 from yarpen.expression import YarpenSymbol, YarpenNumber, YarpenBoolean
 from yarpen.expression import YarpenClosure, YarpenFreeVarRef, YarpenList
-from yarpen.expression import make_begin
+from yarpen.expression import make_begin, make_assignment
 from yarpen.parser import Parser
 from unittest import TestCase
 
@@ -109,3 +109,19 @@ class ClosureConversionTest(TestCase):
                                       [YarpenSymbol("y")])
         self.assertEqual(self.converter.closure_convert(lambda_exp),
                          outer_closure)
+
+    def test_assignment_to_bound_variable(self):
+        exp = Parser("(lambda (x) (set! x 3))").parse()[0]
+        expected = YarpenClosure(make_begin([make_assignment(YarpenSymbol("x"),
+                                                             YarpenNumber(3))]),
+                                 [], [YarpenSymbol("x")])
+        self.assertEqual(self.converter.closure_convert(exp),
+                         expected)
+
+    def test_assignment_to_free_variable(self):
+        exp = Parser("(lambda () (set! x 3))").parse()[0]
+        expected = YarpenClosure(make_begin([make_assignment(YarpenFreeVarRef("x"),
+                                                             YarpenNumber(3))]),
+                                 [YarpenSymbol("x")], [])
+        self.assertEqual(self.converter.closure_convert(exp),
+                         expected)
