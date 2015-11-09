@@ -74,12 +74,12 @@ class ClosureConversionTest(TestCase):
     def test_closure_convert_lambda_without_variables(self):
         lambda_exp = Parser("(lambda () 3)").parse()[0]
         self.assertEqual(self.converter.closure_convert(lambda_exp),
-                         YarpenClosure(make_begin([YarpenNumber(3)]), [], []))
+                         YarpenClosure(YarpenNumber(3), [], []))
 
     def test_closure_convert_lambda_without_free_variables(self):
         lambda_exp = Parser("(lambda (x) x)").parse()[0]
         self.assertEqual(self.converter.closure_convert(lambda_exp),
-                         YarpenClosure(make_begin([YarpenSymbol("x")]), [],
+                         YarpenClosure(YarpenSymbol("x"), [],
                                        [YarpenSymbol("x")]))
 
     def test_closure_convert_lambda_with_variables(self):
@@ -87,24 +87,24 @@ class ClosureConversionTest(TestCase):
         closure_converted_body = YarpenList([YarpenFreeVarRef("f"),
                                             YarpenSymbol("x")])
         self.assertEqual(self.converter.closure_convert(lambda_exp),
-                         YarpenClosure(make_begin([closure_converted_body]),
+                         YarpenClosure(closure_converted_body,
                                        [YarpenSymbol("f")],
                                        [YarpenSymbol("x")]))
 
     def test_closure_convert_nested_lambda(self):
         exp = "(lambda (y) (lambda (x) (f x ((lambda (f) f) y))))"
         lambda_exp = Parser(exp).parse()[0]
-        most_inner_closure = YarpenClosure(make_begin([YarpenSymbol("f")]),
+        most_inner_closure = YarpenClosure(YarpenSymbol("f"),
                                            [],
                                            [YarpenSymbol("f")])
-        inner_closure_body = make_begin([YarpenList([YarpenFreeVarRef("f"),
-                                        YarpenSymbol("x"),
-                                        YarpenList([most_inner_closure,
-                                                   YarpenFreeVarRef("y")])])])
+        inner_closure_body = YarpenList([YarpenFreeVarRef("f"),
+                                         YarpenSymbol("x"),
+                                         YarpenList([most_inner_closure,
+                                                     YarpenFreeVarRef("y")])])
         inner_closure = YarpenClosure(inner_closure_body,
                                       [YarpenSymbol("f"), YarpenSymbol("y")],
                                       [YarpenSymbol("x")])
-        outer_closure = YarpenClosure(make_begin([inner_closure]),
+        outer_closure = YarpenClosure(inner_closure,
                                       [YarpenSymbol("f")],
                                       [YarpenSymbol("y")])
         self.assertEqual(self.converter.closure_convert(lambda_exp),
@@ -112,16 +112,16 @@ class ClosureConversionTest(TestCase):
 
     def test_assignment_to_bound_variable(self):
         exp = Parser("(lambda (x) (set! x 3))").parse()[0]
-        expected = YarpenClosure(make_begin([make_assignment(YarpenSymbol("x"),
-                                                             YarpenNumber(3))]),
+        expected = YarpenClosure(make_assignment(YarpenSymbol("x"),
+                                                             YarpenNumber(3)),
                                  [], [YarpenSymbol("x")])
         self.assertEqual(self.converter.closure_convert(exp),
                          expected)
 
     def test_assignment_to_free_variable(self):
         exp = Parser("(lambda () (set! x 3))").parse()[0]
-        expected = YarpenClosure(make_begin([make_assignment(YarpenFreeVarRef("x"),
-                                                             YarpenNumber(3))]),
+        expected = YarpenClosure(make_assignment(YarpenFreeVarRef("x"),
+                                                             YarpenNumber(3)),
                                  [YarpenSymbol("x")], [])
         self.assertEqual(self.converter.closure_convert(exp),
                          expected)

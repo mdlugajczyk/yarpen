@@ -145,7 +145,8 @@ add_group("closures",
     (cnt1)
     (cnt1)
     (cnt1)
-    (cnt2)))""", "1"),
+    (cnt2)
+    (cnt2)))""", "2"),
            ("""(let ((Y (lambda (X)
     ((lambda (procedure)
        (X (lambda (arg) ((procedure procedure) arg))))

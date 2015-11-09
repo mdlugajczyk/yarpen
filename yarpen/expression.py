@@ -120,7 +120,9 @@ def lambda_args(expr):
 
 
 def lambda_body(expr):
-    return make_begin(expr.expressions[2:])
+    if len(expr.expressions) > 3:
+        return make_begin(expr.expressions[2:])
+    return expr.expressions[2]
 
 
 def make_lambda(args, body):
