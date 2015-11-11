@@ -1,10 +1,12 @@
 from __future__ import absolute_import
-from yarpen.closure_conversion import ClosureConverter
-from yarpen.expression import YarpenSymbol, YarpenNumber, YarpenBoolean
-from yarpen.expression import YarpenClosure, YarpenFreeVarRef, YarpenList
-from yarpen.expression import make_assignment
-from yarpen.parser import Parser
+
 from unittest import TestCase
+from yarpen.parser import Parser
+
+from yarpen.closure_conversion import ClosureConverter
+from yarpen.expression import YarpenBoolean, YarpenBoxedValue, YarpenClosure, \
+    YarpenFreeVarRef, YarpenList, YarpenNumber, YarpenSymbol, make_assignment, \
+    make_lambda
 
 
 class ClosureConversionTest(TestCase):
@@ -111,17 +113,20 @@ class ClosureConversionTest(TestCase):
                          outer_closure)
 
     def test_assignment_to_bound_variable(self):
-        exp = Parser("(lambda (x) (set! x 3))").parse()[0]
-        expected = YarpenClosure(make_assignment(YarpenSymbol("x"),
-                                                             YarpenNumber(3)),
+        exp = make_lambda([YarpenSymbol("x")],
+                          make_assignment(YarpenBoxedValue(YarpenSymbol("x")), YarpenNumber(3)))
+        expected = YarpenClosure(make_assignment(YarpenBoxedValue(YarpenSymbol("x")),
+                                                 YarpenNumber(3)),
                                  [], [YarpenSymbol("x")])
         self.assertEqual(self.converter.closure_convert(exp),
                          expected)
 
     def test_assignment_to_free_variable(self):
-        exp = Parser("(lambda () (set! x 3))").parse()[0]
-        expected = YarpenClosure(make_assignment(YarpenFreeVarRef("x"),
-                                                             YarpenNumber(3)),
+        exp = make_lambda([],
+                          make_assignment(YarpenBoxedValue(YarpenSymbol("x")),
+                                          YarpenNumber(3)))
+        expected = YarpenClosure(make_assignment(YarpenBoxedValue(YarpenFreeVarRef("x")),
+                                                 YarpenNumber(3)),
                                  [YarpenSymbol("x")], [])
         self.assertEqual(self.converter.closure_convert(exp),
                          expected)

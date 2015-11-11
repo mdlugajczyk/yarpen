@@ -25,7 +25,7 @@ class AssignmentElimination(object):
         elif is_number(exp):
             return exp
         elif is_assignment(exp):
-            return make_assignment(YarpenBoxedValue(assignment_variable(exp).symbol),
+            return make_assignment(YarpenBoxedValue(assignment_variable(exp)),
                                    self.transform(assignment_value(exp)))
         elif is_lambda(exp):
             return make_lambda(self._maybe_wrap_formals(lambda_args(exp)),
@@ -62,7 +62,7 @@ class AssignmentElimination(object):
 
     def _maybe_wrap_variable(self, exp):
         if self._is_mutable(exp):
-            return YarpenBoxedValue(exp.symbol)
+            return YarpenBoxedValue(exp)
         else:
             return exp
 
@@ -76,7 +76,7 @@ class AssignmentElimination(object):
         transformed_formals = []
         for formal in lambda_formals:
             if self._is_mutable(formal):
-                transformed_formals.append(YarpenBoxedValue(formal.symbol))
+                transformed_formals.append(YarpenBoxedValue(formal))
             else:
                 transformed_formals.append(formal)
         return transformed_formals

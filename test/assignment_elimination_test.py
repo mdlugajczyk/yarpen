@@ -29,36 +29,35 @@ class AssignmentEliminationTest(TestCase):
     def assignment_test(self):
         expr = Parser("(set! foo 3)").parse()[0]
         self.assertEqual(self.converter.transform(expr),
-                         make_assignment(YarpenBoxedValue("foo"),
+                         make_assignment(YarpenBoxedValue(YarpenSymbol("foo")),
                                          YarpenNumber(3)))
 
     def lambda_with_mutable_var_test(self):
         expr = Parser("(lambda(x y) (set! x y))").parse()[0]
-        expected = make_lambda([YarpenBoxedValue("x"), YarpenSymbol("y")],
-                               make_assignment(YarpenBoxedValue("x"),
+        expected = make_lambda([YarpenBoxedValue(YarpenSymbol("x")), YarpenSymbol("y")],
+                               make_assignment(YarpenBoxedValue(YarpenSymbol("x")),
                                                 YarpenSymbol("y")))
         self.assertEqual(self.converter.transform(expr), expected)
 
     def set_with_mutation_in_value_test(self):
         expr = Parser("(set! foo (set! x 3))").parse()[0]
         self.assertEqual(self.converter.transform(expr),
-                         make_assignment(YarpenBoxedValue("foo"),
-                                         make_assignment(YarpenBoxedValue("x"),
+                         make_assignment(YarpenBoxedValue(YarpenSymbol("foo")),
+                                         make_assignment(YarpenBoxedValue(YarpenSymbol("x")),
                                                          YarpenNumber(3))))
 
     def if_test(self):
         expr = Parser("(if (set! x 3) (set! y 4) (set! z 5))").parse()[0]
         self.assertEqual(self.converter.transform(expr),
-                         make_if(make_assignment(YarpenBoxedValue("x"), YarpenNumber(3)),
-                                 make_assignment(YarpenBoxedValue("y"), YarpenNumber(4)),
-                                 make_assignment(YarpenBoxedValue("z"), YarpenNumber(5))))
+                         make_if(make_assignment(YarpenBoxedValue(YarpenSymbol("x")), YarpenNumber(3)),
+                                 make_assignment(YarpenBoxedValue(YarpenSymbol("y")), YarpenNumber(4)),
+                                 make_assignment(YarpenBoxedValue(YarpenSymbol("z")), YarpenNumber(5))))
 
     def application_test(self):
         expr = Parser("(foo (begin (set! x 3) x))").parse()[0]
         self.assertEqual(self.converter.transform(expr),
                          YarpenList([YarpenSymbol("foo"),
                                      make_begin([
-                                         make_assignment(YarpenBoxedValue("x"),
+                                         make_assignment(YarpenBoxedValue(YarpenSymbol("x")),
                                                          YarpenNumber(3)),
-                                         YarpenBoxedValue("x")])]))
-                                     
+                                         YarpenBoxedValue(YarpenSymbol("x"))])]))

@@ -160,6 +160,9 @@ def is_variable(expr):
     return type(expr) == YarpenSymbol
 
 
+def is_boxed_value(expr):
+    return isinstance(expr, YarpenBoxedValue)
+
 def is_free_var_reference(expr):
     return isinstance(expr, YarpenFreeVarRef)
 

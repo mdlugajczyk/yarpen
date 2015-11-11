@@ -1,9 +1,9 @@
 
-from .expression import YarpenFreeVarRef, YarpenList, YarpenClosure
+from .expression import YarpenFreeVarRef, YarpenList, YarpenClosure, YarpenBoxedValue
 from .expression import is_number, is_boolean, is_lambda, lambda_args, is_if
 from .expression import lambda_body, is_application, is_variable, if_condition
 from .expression import if_conseq, if_alternative, make_lambda
-from .expression import is_begin, make_begin, begin_expressions
+from .expression import is_begin, make_begin, begin_expressions, is_boxed_value
 from .expression import is_assignment, assignment_variable, assignment_value
 
 
@@ -24,6 +24,8 @@ class ClosureConverter(object):
             res = YarpenList([self.closure_convert(e)
                               for e in exp.expressions])
             return res
+        elif is_boxed_value(exp):
+            return YarpenBoxedValue(self.closure_convert(exp.boxed_variable))
         else:
             return exp
 
@@ -37,6 +39,8 @@ class ClosureConverter(object):
     def substitute(self, exp, free_vars):
         if is_number(exp) or is_boolean(exp):
             return exp
+        elif is_boxed_value(exp):
+            return YarpenBoxedValue(self.substitute(exp.boxed_variable, free_vars))
         elif is_variable(exp):
             if exp in free_vars:
                 return YarpenFreeVarRef(exp.symbol)
@@ -62,6 +66,8 @@ class ClosureConverter(object):
                 return []
             else:
                 return [expr]
+        elif is_boxed_value(expr):
+            return self.free_variables(expr.boxed_variable)
         elif is_if(expr):
             return (self.free_variables(if_condition(expr))
                     + self.free_variables(if_conseq(expr))
@@ -73,7 +79,7 @@ class ClosureConverter(object):
             fv = [self.free_variables(exp) for exp in begin_expressions(expr)]
             return [x for y in fv for x in y]
         elif is_assignment(expr):
-            return [assignment_variable(expr)] + self.free_variables(assignment_value(expr))
+            return self.free_variables(assignment_variable(expr)) + self.free_variables(assignment_value(expr))
         elif is_application(expr):
             fv = [self.free_variables(exp) for exp in expr.expressions]
             return [x for y in fv for x in y]
