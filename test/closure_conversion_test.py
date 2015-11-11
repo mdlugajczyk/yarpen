@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from yarpen.closure_conversion import ClosureConverter
 from yarpen.expression import YarpenSymbol, YarpenNumber, YarpenBoolean
 from yarpen.expression import YarpenClosure, YarpenFreeVarRef, YarpenList
-from yarpen.expression import make_begin, make_assignment
+from yarpen.expression import make_assignment
 from yarpen.parser import Parser
 from unittest import TestCase
 
