@@ -1,5 +1,4 @@
-from .closure_conversion import ClosureConverter
-from .desugar import Desugarer
+from .code_transformer import CodeTransformer
 from .emitter import Emitter
 from .environment import Environment
 from .expression import YarpenFreeVarRef, YarpenSymbol, assignment_value, \
@@ -31,18 +30,14 @@ class Compiler(object):
                                     "fx-": self.compile_prim_sub,
                                     "fx*": self.compile_prim_mul,
                                     "zero?": self.compile_prim_zero_p}
-
-    def compile(self):
-        exprs = self.parser.parse()
-        desugarer = Desugarer()
-        desugared_exprs = [desugarer.transform(exp) for exp in exprs]
         global_variables = [YarpenSymbol(fn) for fn
                             in self.primitive_functions]
-        closure_converter = ClosureConverter(global_variables)
-        closure_converted = [closure_converter.transform(exp)
-                             for exp in desugared_exprs]
+        self._code_transformer = CodeTransformer(global_variables)
+
+    def compile(self):
+        exprs = self._get_transformed_source()
         self.emitter.entry_point_preamble("pyscm_start")
-        self.compile_exprs(closure_converted, Environment(),
+        self.compile_exprs(exprs, Environment(),
                            -Compiler.WORDSIZE, True)
         self.emitter.ret()
         return self.emitter.emit()
@@ -322,6 +317,9 @@ class Compiler(object):
             self.emitter.add(immediate_const(si), RSP)
         else:
             self.emitter.sub(immediate_const(-si), RSP)
+
+    def _get_transformed_source(self):
+        return [self._code_transformer.transform(e) for e in self.parser.parse()]
 
 
 class LabelGenerator:
