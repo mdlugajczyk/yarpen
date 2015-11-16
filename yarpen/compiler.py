@@ -1,15 +1,16 @@
-from .parser import Parser
-from .emitter import Emitter
-from .expression import YarpenSymbol, YarpenFreeVarRef, is_free_var_reference
-from .expression import is_number, is_boolean, is_closure, begin_expressions
-from .expression import is_application, is_variable, is_tagged_list, is_begin
-from .expression import if_condition, if_conseq, is_if, if_alternative
-from .expression import is_assignment, assignment_variable, assignment_value
-from .environment import Environment
-from .desugar import desugar
 from .closure_conversion import ClosureConverter
-from .registers import RAX, RBX, RDX, RDI, RSP, AL, offset, immediate_const
-from .registers import dereference
+from .desugar import desugar
+from .emitter import Emitter
+from .environment import Environment
+from .expression import YarpenFreeVarRef, YarpenSymbol, assignment_value, \
+    assignment_variable, begin_expressions, if_alternative, if_condition, \
+    if_conseq, is_application, is_assignment, is_begin, is_boolean, is_closure, \
+    is_free_var_reference, is_if, is_number, is_tagged_list, is_variable
+from .parser import Parser
+from .registers import AL, RAX, RBX, RDI, RDX, RSP, dereference, \
+    immediate_const, offset
+
+from yarpen.expression import is_boxed_value
 
 
 class Compiler(object):
@@ -53,6 +54,8 @@ class Compiler(object):
     def compile_expr(self, expr, env, stack_index, tail_position):
         if is_number(expr):
             self.compile_number(expr)
+        elif is_boxed_value(expr):
+            self.compile_expr(expr.boxed_value, env, stack_index, tail_position)
         elif is_boolean(expr):
             self.compile_boolean(expr)
         elif is_variable(expr) or is_free_var_reference(expr):
