@@ -1,5 +1,5 @@
 from .closure_conversion import ClosureConverter
-from .desugar import desugar
+from .desugar import Desugarer
 from .emitter import Emitter
 from .environment import Environment
 from .expression import YarpenFreeVarRef, YarpenSymbol, assignment_value, \
@@ -34,7 +34,8 @@ class Compiler(object):
 
     def compile(self):
         exprs = self.parser.parse()
-        desugared_exprs = [desugar(exp) for exp in exprs]
+        desugarer = Desugarer()
+        desugared_exprs = [desugarer.transform(exp) for exp in exprs]
         global_variables = [YarpenSymbol(fn) for fn
                             in self.primitive_functions]
         closure_converter = ClosureConverter(global_variables)
