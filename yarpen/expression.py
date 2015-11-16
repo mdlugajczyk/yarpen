@@ -103,19 +103,19 @@ class YarpenFreeVarRef(object):
         return hash(self.symbol)
 
 class YarpenBoxedValue(object):
-    def __init__(self, boxed_variable):
-        self.boxed_variable = boxed_variable
+    def __init__(self, boxed_value):
+        self.boxed_value = boxed_value
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
             return False
-        return self.boxed_variable == other.boxed_variable
+        return self.boxed_value == other.boxed_value
 
     def __hash__(self):
-        return hash(self.boxed_variable)
+        return hash(self.boxed_value)
 
     def __repr__(self):
-        return "BoxedVariable: %s" % self.boxed_variable
+        return "BoxedVariable: %s" % self.boxed_value
 
 
 def is_number(expr):

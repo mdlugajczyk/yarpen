@@ -25,7 +25,7 @@ class ClosureConverter(object):
                               for e in exp.expressions])
             return res
         elif is_boxed_value(exp):
-            return YarpenBoxedValue(self.closure_convert(exp.boxed_variable))
+            return YarpenBoxedValue(self.closure_convert(exp.boxed_value))
         else:
             return exp
 
@@ -40,7 +40,7 @@ class ClosureConverter(object):
         if is_number(exp) or is_boolean(exp):
             return exp
         elif is_boxed_value(exp):
-            return YarpenBoxedValue(self.substitute(exp.boxed_variable, free_vars))
+            return YarpenBoxedValue(self.substitute(exp.boxed_value, free_vars))
         elif is_variable(exp):
             if exp in free_vars:
                 return YarpenFreeVarRef(exp.symbol)
@@ -67,7 +67,7 @@ class ClosureConverter(object):
             else:
                 return [expr]
         elif is_boxed_value(expr):
-            return self.free_variables(expr.boxed_variable)
+            return self.free_variables(expr.boxed_value)
         elif is_if(expr):
             return (self.free_variables(if_condition(expr))
                     + self.free_variables(if_conseq(expr))
