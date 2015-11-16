@@ -63,24 +63,24 @@ class ClosureConversionTest(TestCase):
 
     def test_closure_convert_number(self):
         num = YarpenNumber(3)
-        self.assertEqual(num, self.converter.closure_convert(num))
+        self.assertEqual(num, self.converter.transform(num))
 
     def test_closure_convert_boolean(self):
         bool = YarpenBoolean(True)
-        self.assertEqual(bool, self.converter.closure_convert(bool))
+        self.assertEqual(bool, self.converter.transform(bool))
 
     def test_closure_convert_symbol(self):
         sym = YarpenSymbol("foo")
-        self.assertEqual(sym, self.converter.closure_convert(sym))
+        self.assertEqual(sym, self.converter.transform(sym))
 
     def test_closure_convert_lambda_without_variables(self):
         lambda_exp = Parser("(lambda () 3)").parse()[0]
-        self.assertEqual(self.converter.closure_convert(lambda_exp),
+        self.assertEqual(self.converter.transform(lambda_exp),
                          YarpenClosure(YarpenNumber(3), [], []))
 
     def test_closure_convert_lambda_without_free_variables(self):
         lambda_exp = Parser("(lambda (x) x)").parse()[0]
-        self.assertEqual(self.converter.closure_convert(lambda_exp),
+        self.assertEqual(self.converter.transform(lambda_exp),
                          YarpenClosure(YarpenSymbol("x"), [],
                                        [YarpenSymbol("x")]))
 
@@ -88,7 +88,7 @@ class ClosureConversionTest(TestCase):
         lambda_exp = Parser("(lambda (x) (f x))").parse()[0]
         closure_converted_body = YarpenList([YarpenFreeVarRef("f"),
                                             YarpenSymbol("x")])
-        self.assertEqual(self.converter.closure_convert(lambda_exp),
+        self.assertEqual(self.converter.transform(lambda_exp),
                          YarpenClosure(closure_converted_body,
                                        [YarpenSymbol("f")],
                                        [YarpenSymbol("x")]))
@@ -109,7 +109,7 @@ class ClosureConversionTest(TestCase):
         outer_closure = YarpenClosure(inner_closure,
                                       [YarpenSymbol("f")],
                                       [YarpenSymbol("y")])
-        self.assertEqual(self.converter.closure_convert(lambda_exp),
+        self.assertEqual(self.converter.transform(lambda_exp),
                          outer_closure)
 
     def test_assignment_to_bound_variable(self):
@@ -118,7 +118,7 @@ class ClosureConversionTest(TestCase):
         expected = YarpenClosure(make_assignment(YarpenBoxedValue(YarpenSymbol("x")),
                                                  YarpenNumber(3)),
                                  [], [YarpenSymbol("x")])
-        self.assertEqual(self.converter.closure_convert(exp),
+        self.assertEqual(self.converter.transform(exp),
                          expected)
 
     def test_assignment_to_free_variable(self):
@@ -128,5 +128,5 @@ class ClosureConversionTest(TestCase):
         expected = YarpenClosure(make_assignment(YarpenBoxedValue(YarpenFreeVarRef("x")),
                                                  YarpenNumber(3)),
                                  [YarpenSymbol("x")], [])
-        self.assertEqual(self.converter.closure_convert(exp),
+        self.assertEqual(self.converter.transform(exp),
                          expected)

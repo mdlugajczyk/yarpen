@@ -39,7 +39,7 @@ class Compiler(object):
         global_variables = [YarpenSymbol(fn) for fn
                             in self.primitive_functions]
         closure_converter = ClosureConverter(global_variables)
-        closure_converted = [closure_converter.closure_convert(exp)
+        closure_converted = [closure_converter.transform(exp)
                              for exp in desugared_exprs]
         self.emitter.entry_point_preamble("pyscm_start")
         self.compile_exprs(closure_converted, Environment(),

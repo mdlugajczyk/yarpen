@@ -11,26 +11,26 @@ class ClosureConverter(object):
     def __init__(self, global_variables=[]):
         self.global_variables = global_variables
 
-    def closure_convert(self, exp):
+    def transform(self, exp):
         if is_number(exp) or is_boolean(exp) or is_variable(exp):
             return exp
         elif is_lambda(exp):
             return self.closure_convert_lambda(exp)
         elif is_begin(exp):
-            return make_begin([self.closure_convert(e)
+            return make_begin([self.transform(e)
                                for e in begin_expressions(exp)])
         elif is_application(exp):
-            res = YarpenList([self.closure_convert(e)
+            res = YarpenList([self.transform(e)
                               for e in exp.expressions])
             return res
         elif is_boxed_value(exp):
-            return YarpenBoxedValue(self.closure_convert(exp.boxed_value))
+            return YarpenBoxedValue(self.transform(exp.boxed_value))
         else:
             return exp
 
     def closure_convert_lambda(self, exp):
         free_vars = self.free_variables(exp)
-        converted_body = self.closure_convert(lambda_body(exp))
+        converted_body = self.transform(lambda_body(exp))
         return YarpenClosure(self.substitute(converted_body, free_vars),
                              free_vars,
                              lambda_args(exp))
