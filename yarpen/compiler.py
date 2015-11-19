@@ -142,6 +142,8 @@ class Compiler(object):
         return integer << Compiler.INT_SHIFT
 
     def compile_variable_reference(self, expr, env, stack_index):
+        if is_boxed_value(expr):
+            expr = expr.boxed_value # until we have a proper support for boxed values
         variable_index = env.get_var(expr)
         if isinstance(expr, YarpenSymbol):
             self.emitter.comment("Loading bound variable: " + str(expr))
@@ -172,7 +174,10 @@ class Compiler(object):
         self.emitter.comment('Assignment to variable: {0} at index: {1} in env: {2}'.format(str(expr), variable_index, env))
         self.compile_expr(assignment_value(expr), env, stack_index, None)
         self.emitter.comment("Done with assignment to " + str(assignment_variable(expr)))
-        if isinstance(assignment_variable(expr), YarpenSymbol):
+        variable = assignment_variable(expr)
+        if is_boxed_value(variable):
+            variable = variable.boxed_value
+        if isinstance(variable, YarpenSymbol):
             self.emitter.comment("Saving bound variable: " + str(assignment_variable(expr)))
             self.save_on_stack(variable_index)
         else:

@@ -1,9 +1,10 @@
-from .expression import YarpenFreeVarRef, YarpenList, YarpenClosure, YarpenBoxedValue
-from .expression import is_number, is_boolean, is_lambda, lambda_args, is_if
-from .expression import lambda_body, is_application, is_variable, if_condition
-from .expression import if_conseq, if_alternative, make_lambda
-from .expression import is_begin, make_begin, begin_expressions, is_boxed_value
-from .expression import is_assignment, assignment_variable, assignment_value
+from .expression import YarpenBoxedValue, YarpenClosure, YarpenFreeVarRef, \
+    YarpenList, assignment_value, assignment_variable, begin_expressions, \
+    if_alternative, if_condition, if_conseq, is_application, is_assignment, \
+    is_begin, is_boolean, is_boxed_value, is_if, is_lambda, is_number, \
+    is_variable, lambda_args, lambda_body, make_begin, make_lambda
+
+from yarpen.expression import make_assignment
 
 
 class ClosureConverter(object):
@@ -50,6 +51,9 @@ class ClosureConverter(object):
                                               sub(free_vars,
                                                   lambda_args(exp)))
             return make_lambda(lambda_args(exp), lambda_body_exp)
+        elif is_assignment(exp):
+            return make_assignment(self.substitute(assignment_variable(exp), free_vars),
+                                   self.substitute(assignment_value(exp), free_vars))
         elif is_begin(exp):
             return make_begin([self.substitute(e, free_vars)
                                for e in begin_expressions(exp)])
@@ -86,6 +90,11 @@ class ClosureConverter(object):
             return []
 
 
-def sub(a, b):
+def sub(free_vars, args):
     # Return a - b
-    return [x for x in a if x not in b]
+    result = []
+    for f in free_vars:
+        if f in args or YarpenBoxedValue(f) in args:
+            continue
+        result.append(f)
+    return result

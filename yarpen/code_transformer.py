@@ -10,7 +10,7 @@ class CodeTransformer(object):
         self._transformations = []
         self._register_transformation(Desugarer())
         self.global_variables = global_variables
-        # self._register_transformation(AssignmentElimination())
+        self._register_transformation(AssignmentElimination())
         self._register_transformation(ClosureConverter(global_variables))
 
     def transform(self, expr):
