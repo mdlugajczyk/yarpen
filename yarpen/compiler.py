@@ -210,7 +210,7 @@ class Compiler(object):
         self.emitter.comment("Compiling closure: " + str(expr) + " in env " + str(env))
         args = expr.parameters
         body = expr.body
-        closure_env, si = self.extend_env_for_closure(args, env,
+        closure_env, si = self.extend_env_for_closure(args, Environment(),
                                                       -Compiler.WORDSIZE)
         closure_label = self.label_generator.unique_label("closure")
         closure_end = self.label_generator.unique_label("closure_end")
@@ -225,6 +225,10 @@ class Compiler(object):
         var_offset = 2
         self.emitter.mov(RAX, RDX)
         for fv in expr.free_variables:
+            try:
+                env.get_var(fv)
+            except KeyError:
+                fv = YarpenFreeVarRef(fv.symbol)
             self.emitter.comment("Compiling free variable: " + str(fv))
             self.compile_variable_reference(fv, env, stack_index)
             index = var_offset * Compiler.WORDSIZE

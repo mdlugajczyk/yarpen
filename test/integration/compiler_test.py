@@ -159,10 +159,14 @@ add_group("closures",
 		  (fx* n (func-arg (fx- n 1))))))))
   (let ((fact
    (Y F*))) (fact 5))))""", "120"),
-           # ("""(let ((x 3))
-           #       (let ((y (lambda () x)))
-           #         (set! x 5)
-           #         (y)))""", "5")
+           ("""(let ((x 3))
+           (let ((z 4))
+               (let ((y (lambda () x)))
+                 (y))))""", "3"),
+        # ("""(let ((x 3))
+        #          (let ((y (lambda () x)))
+        #            (set! x 5)
+        #            (y)))""", "5")
           ])
 
 
