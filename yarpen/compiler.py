@@ -275,7 +275,7 @@ class Compiler(object):
         self.emitter.comment("Application: " + str(expr) + " is tail position: " + str(tail_position))
         closure_si = self.emit_closure(expr, env, stack_index)
         if tail_position:
-            self.emitter.comment("Emit args.")
+            self.emitter.comment("Emit args: %s" % str(expr.expressions[1:]))
             stack_index = self.emit_application_arguments(expr.expressions[1:],
                                                           env, stack_index)
             # let's load the closure from stack to rbx, otherwise it
