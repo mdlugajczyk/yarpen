@@ -59,7 +59,7 @@ class Compiler(object):
         elif self.is_primitive_function(expr):
             self.compile_primitive_function(expr, env, stack_index)
         elif is_closure(expr):
-            self.compile_closure(expr, env, stack_index, tail_position)
+            self.compile_closure(expr, env, stack_index, True)
         elif is_begin(expr):
             self.compile_begin(expr, env, stack_index, tail_position)
         elif is_assignment(expr):
@@ -280,8 +280,8 @@ class Compiler(object):
             stack_index -= Compiler.WORDSIZE
         return extended_env, stack_index
 
-    def emit_closure(self, expr, env, stack_index):
-        self.compile_expr(expr.expressions[0], env, stack_index, None)
+    def emit_closure(self, expr, env, stack_index, tail_position):
+        self.compile_expr(expr.expressions[0], env, stack_index, False)
         self.save_on_stack(stack_index)
         closure_stack_index = stack_index
         return closure_stack_index
@@ -301,7 +301,7 @@ class Compiler(object):
 
     def compile_application(self, expr, env, stack_index, tail_position):
         self.emitter.comment("Application: " + str(expr) + " is tail position: " + str(tail_position))
-        closure_si = self.emit_closure(expr, env, stack_index)
+        closure_si = self.emit_closure(expr, env, stack_index, tail_position)
         if tail_position:
             self.emitter.comment("Emit args: %s" % str(expr.expressions[1:]))
             stack_index = self.emit_application_arguments(expr.expressions[1:],

@@ -187,4 +187,20 @@ add_group("let*",
           [("(let* ((x 1) (y (fx+ x x))) y)", "2"),
            ("(let* ((x 1) (y (fx+ x x)) (z (fx+ y y ))) z)", "4")])
 
+add_group("TCO",
+          [("""(letrec ((odd (lambda (n) (if (zero? n) #f (even (fx- n 1)))))
+                      (even (lambda (n) (if (zero? n) #t (odd (fx- n 1))))))
+              (even 100000000))""", "#t"),
+          ("""(letrec ((odd (lambda (n) (if (zero? n) #f (even (fx- n 1)))))
+                      (even (lambda (n) (if (zero? n) #t (odd (fx- n 1))))))
+              (even 100000001))""", "#f"),
+          ("""(letrec ((odd (lambda (n) (if (zero? n) #f (even (fx- n 1)))))
+                      (even (lambda (n) (if (zero? n) #t (odd (fx- n 1))))))
+              (odd 112345671))""", "#t"),
+          ("""(letrec ((odd (lambda (n) (if (zero? n) #f (even (fx- n 1)))))
+                      (even (lambda (n) (if (zero? n) #t (odd (fx- n 1))))))
+              (odd 198765431))""", "#t")])
+
+
+
 run_tests()
