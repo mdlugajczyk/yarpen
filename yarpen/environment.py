@@ -12,8 +12,11 @@ class Environment:
         if var in self.bindings:
             return self.bindings[var]
         if self.parent:
-            return self.parent.get_var(var)
-        raise KeyError("Undefined variable %s" % var)
+            try:
+                return self.parent.get_var(var)
+            except KeyError:
+                raise KeyError("Undefined variable %s in %s" % (var,str(self)))
+        raise KeyError("Undefined variable %s in %s" % (var,str(self)))
 
     def set_var(self, var, val):
         if is_boxed_value(var):

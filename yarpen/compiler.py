@@ -50,11 +50,9 @@ class Compiler(object):
     def compile_expr(self, expr, env, stack_index, tail_position):
         if is_number(expr):
             self.compile_number(expr)
-        elif is_boxed_value(expr):
-            self.compile_expr(expr.boxed_value, env, stack_index, tail_position)
         elif is_boolean(expr):
             self.compile_boolean(expr)
-        elif is_variable(expr) or is_free_var_reference(expr):
+        elif is_variable(expr) or is_free_var_reference(expr) or is_boxed_value(expr):
             self.compile_variable_reference(expr, env, stack_index)
         elif is_if(expr):
             self.compile_if(expr, env, stack_index, tail_position)
@@ -142,15 +140,19 @@ class Compiler(object):
         return integer << Compiler.INT_SHIFT
 
     def compile_variable_reference(self, expr, env, stack_index):
+        unboxed_variable = expr
         if is_boxed_value(expr):
-            expr = expr.boxed_value # until we have a proper support for boxed values
-        variable_index = env.get_var(expr)
-        if isinstance(expr, YarpenSymbol):
+            unboxed_variable = expr.boxed_value
+        variable_index = env.get_var(unboxed_variable)
+        if isinstance(unboxed_variable, YarpenSymbol):
             self.emitter.comment("Loading bound variable: " + str(expr))
             self.load_from_stack(variable_index)
         else:
-            self.emitter.comment("Loading free variable: " + str(expr))
+            self.emitter.comment("Loading free variable: " + str(unboxed_variable))
             self.emitter.mov(offset(RBX, variable_index), RAX)
+        if is_boxed_value(expr):
+            self.emitter.comment("Loading boxed variable")
+            self.emitter.mov(offset(RAX,0), RAX)
 
     def compile_if(self, expr, env, stack_index, tail_position):
         cond_false_label = self.label_generator.unique_label("false_branch")
@@ -176,14 +178,25 @@ class Compiler(object):
         self.emitter.comment("Done with assignment to " + str(assignment_variable(expr)))
         variable = assignment_variable(expr)
         if is_boxed_value(variable):
-            variable = variable.boxed_value
-        if isinstance(variable, YarpenSymbol):
+            self.assign_to_boxed_variable(variable.boxed_value, env, stack_index)
+        elif isinstance(variable, YarpenSymbol):
             self.emitter.comment("Saving bound variable: " + str(assignment_variable(expr)))
             self.save_on_stack(variable_index)
         else:
             self.emitter.comment("Saving free variable: " + str(assignment_variable(expr)))
             self.emitter.mov(RAX, offset(RBX, variable_index))
 
+    def assign_to_boxed_variable(self, var, env, stack_index):
+        self.save_on_stack(stack_index)
+        var_index = env.get_var(var)
+        if is_variable(var):
+            self.load_from_stack(var_index)
+            self.emitter.mov(RAX, RDX)
+        else:
+            self.emitter.mov(offset(RBX, var_index), RDX)
+        self.load_from_stack(stack_index)
+        self.emitter.mov(RAX, offset(RDX,0))
+            
     def alloc_memory(self, stack_index, size):
         self.adjust_base(stack_index + Compiler.WORDSIZE)
         self.emitter.mov(immediate_const(size), RDI)
@@ -239,11 +252,26 @@ class Compiler(object):
 
         self.emitter.jmp(closure_end)
         self.emitter.function_header(closure_label)
+        self.emitter.comment("Allocating boxed values")
+        self.allocate_boxed_parameters(args, closure_env, stack_index)
         self.emitter.comment("Compiling closure body: " + closure_label + " " + str(expr))
         self.compile_expr(body, closure_env, si, tail_position)
         self.emitter.ret()
         self.emitter.label(closure_end)
         self.load_from_stack(closure_stack_index)
+
+    def allocate_boxed_parameters(self, parameters, env, stack_index):
+        # TODO: could be optimized if we allocated an array for all boxed
+        # variables instead of calling malloc per each var.
+        for arg in filter(lambda a: is_boxed_value(a), parameters):
+            self.emitter.comment("Allocating boxed variable: %s" % str(arg))
+            arg_index = env.get_var(arg)
+            self.alloc_memory(stack_index, Compiler.WORDSIZE)
+            self.emitter.mov(RAX, RDX)
+            self.load_from_stack(arg_index)
+            self.emitter.mov(RAX, offset(RDX, 0))
+            self.emitter.mov(RDX, RAX)
+            self.save_on_stack(arg_index)
 
     def extend_env_for_closure(self, closure_args, env, stack_index):
         extended_env = env

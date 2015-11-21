@@ -163,11 +163,10 @@ add_group("closures",
            (let ((z 4))
                (let ((y (lambda () x)))
                  (y))))""", "3"),
-        # ("""(let ((x 3))
-        #          (let ((y (lambda () x)))
-        #            (set! x 5)
-        #            (y)))""", "5")
-          ])
+        ("""(let ((x 3))
+                 (let ((y (lambda () x)))
+                   (set! x 5)
+                   (y)))""", "5")])
 
 
 add_group("many arguments",
