@@ -303,30 +303,36 @@ class Compiler(object):
         self.emitter.comment("Application: " + str(expr) + " is tail position: " + str(tail_position))
         closure_si = self.emit_closure(expr, env, stack_index, tail_position)
         if tail_position:
-            self.emitter.comment("Emit args: %s" % str(expr.expressions[1:]))
-            stack_index = self.emit_application_arguments(expr.expressions[1:],
-                                                          env, stack_index)
-            # let's load the closure from stack to rbx, otherwise it
-            # would be overwritten. we don't need to preserve old rbx,
-            # as this is tail call.
-            self.emitter.comment("Load closure from stack.")
-            self.load_from_stack(closure_si)
-            self.emitter.mov(RAX, RBX)
-            self.shift_arguments_for_tail_call(stack_index, expr.expressions[1:])
-            self.emitter.mov(offset(RBX, Compiler.WORDSIZE), RAX)
-            self.emitter.jmp(dereference(RAX))
+            self.emit_tail_call(expr, env, stack_index, closure_si)
         else:
-            stack_index -= Compiler.WORDSIZE
-            self.emitter.comment("Emit args.")
-            self.emit_application_arguments(expr.expressions[1:],
-                                            env, stack_index)
-            closure_register_si = self.save_closure_register(stack_index)
-            self.emit_closure_app(closure_si, stack_index)
-            stack_index -= Compiler.WORDSIZE
-            self.save_on_stack(stack_index)
-            self.load_from_stack(closure_register_si)
-            self.emitter.mov(RAX, RBX)
-            self.load_from_stack(stack_index)
+            self.emit_call(expr, env, stack_index, closure_si)
+
+    def emit_tail_call(self, expr, env, stack_index, closure_si):
+        self.emitter.comment("Emit args: %s" % str(expr.expressions[1:]))
+        stack_index = self.emit_application_arguments(expr.expressions[1:],
+                                                      env, stack_index)
+        # let's load the closure from stack to rbx, otherwise it
+        # would be overwritten. we don't need to preserve old rbx,
+        # as this is tail call.
+        self.emitter.comment("Load closure from stack.")
+        self.load_from_stack(closure_si)
+        self.emitter.mov(RAX, RBX)
+        self.shift_arguments_for_tail_call(stack_index, expr.expressions[1:])
+        self.emitter.mov(offset(RBX, Compiler.WORDSIZE), RAX)
+        self.emitter.jmp(dereference(RAX))
+
+    def emit_call(self, expr, env, stack_index, closure_si):
+        stack_index -= Compiler.WORDSIZE
+        self.emitter.comment("Emit args.")
+        self.emit_application_arguments(expr.expressions[1:],
+                                        env, stack_index)
+        closure_register_si = self.save_closure_register(stack_index)
+        self.emit_closure_app(closure_si, stack_index)
+        stack_index -= Compiler.WORDSIZE
+        self.save_on_stack(stack_index)
+        self.load_from_stack(closure_register_si)
+        self.emitter.mov(RAX, RBX)
+        self.load_from_stack(stack_index)
 
     def shift_arguments_for_tail_call(self, stack_index, arguments):
         delta = - (stack_index + Compiler.WORDSIZE)
