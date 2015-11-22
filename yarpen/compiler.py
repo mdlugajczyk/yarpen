@@ -337,14 +337,14 @@ class Compiler(object):
 
     def shift_arguments_for_tail_call(self, stack, arguments):
         delta = -stack.prev().get_index()
-        src = stack.get_index() + ((len(arguments) - 1) * Compiler.WORDSIZE)
-        dst = stack.get_index()+delta
+        src = Stack(stack.get_index() + ((len(arguments) - 1) * Compiler.WORDSIZE))
+        dst = Stack(stack.get_index()+delta)
         self.emitter.comment("Shift arguments")
         for arg in arguments:
-            self.load_from_stack(src)
-            self.save_on_stack(dst)
-            src -= Compiler.WORDSIZE
-            dst -= Compiler.WORDSIZE
+            self.load_from_stack(src.get_index())
+            self.save_on_stack(dst.get_index())
+            src = src.next()
+            dst = dst.next()
 
     def emit_application_arguments(self, args, env, stack):
         for arg in args:
