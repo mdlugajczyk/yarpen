@@ -10,6 +10,10 @@ class StackTest(TestCase):
         s = Stack()
         self.assertEqual(s.next().get_index(), -16)
 
+    def previous_index_test(self):
+        s = Stack().next()
+        self.assertEqual(s.prev().get_index(), -8)
+
     def each_stack_maintains_separate_index_test(self):
         s = Stack()
         s2 = s.next()

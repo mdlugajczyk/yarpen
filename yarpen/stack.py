@@ -8,3 +8,6 @@ class Stack(object):
 
     def next(self):
         return Stack(self._index - Stack.WORDSIZE)
+
+    def prev(self):
+        return Stack(self._index + Stack.WORDSIZE)
