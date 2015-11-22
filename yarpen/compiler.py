@@ -197,10 +197,11 @@ class Compiler(object):
         self.emitter.mov(RAX, offset(RDX,0))
             
     def alloc_memory(self, stack, size):
-        self.adjust_base(stack.get_index() + Compiler.WORDSIZE)
+        stack = stack.prev()
+        self.adjust_base(stack.get_index())
         self.emitter.mov(immediate_const(size), RDI)
         self.emitter.call("pyscm_alloc")
-        self.adjust_base(- (stack.get_index() + Compiler.WORDSIZE))
+        self.adjust_base(- stack.get_index())
 
     def alloc_closure(self, stack, size_free_variables, label):
         """ We need to allocate a closure structure holding:
@@ -294,9 +295,10 @@ class Compiler(object):
         self.load_from_stack(closure_si.get_index())
         self.emitter.mov(RAX, RBX)
         self.emitter.mov(offset(RAX, Compiler.WORDSIZE), RAX)
-        self.adjust_base(stack.get_index() + Compiler.WORDSIZE)
+        stack = stack.prev()
+        self.adjust_base(stack.get_index())
         self.emitter.call(dereference(RAX))
-        self.adjust_base(- (stack.get_index() + Compiler.WORDSIZE))
+        self.adjust_base(- stack.get_index())
 
     def compile_application(self, expr, env, stack, tail_position):
         self.emitter.comment("Application: " + str(expr) + " is tail position: " + str(tail_position))
@@ -334,7 +336,7 @@ class Compiler(object):
         self.load_from_stack(stack.get_index())
 
     def shift_arguments_for_tail_call(self, stack, arguments):
-        delta = - (stack.get_index() + Compiler.WORDSIZE)
+        delta = -stack.prev().get_index()
         src = stack.get_index() + ((len(arguments) - 1) * Compiler.WORDSIZE)
         dst = stack.get_index()+delta
         self.emitter.comment("Shift arguments")
