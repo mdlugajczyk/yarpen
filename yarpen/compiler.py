@@ -36,6 +36,20 @@ class Compiler(object):
         self._code_transformer = CodeTransformer(global_variables)
 
     def compile(self):
+        """ Main entry point to the compiler.
+
+        The first stage parses the input, then a series of code
+        transformations is applied, producing an equivalent but easier
+        to compile code. Next stage involves generation of (highly
+        unoptimized) x64 assembly.
+
+        Currently, only 5 registers are being used:
+        (1) RAX holds the current result
+        (2) RBX holds the current closure.
+        (3) RDX is used for storing temporary results
+        (4) RDI passing arguments to C functions
+        (5) RSP for stack manipulation
+        """
         exprs = self._get_transformed_source()
         self.emitter.entry_point_preamble("pyscm_start")
         self.compile_exprs(exprs, Environment(),
