@@ -312,15 +312,7 @@ class Compiler(object):
             self.emitter.comment("Load closure from stack.")
             self.load_from_stack(closure_si)
             self.emitter.mov(RAX, RBX)
-            delta = - (stack_index + Compiler.WORDSIZE)
-            src = stack_index + ((len(expr.expressions[1:]) - 1) * Compiler.WORDSIZE)
-            dst = stack_index+delta
-            self.emitter.comment("Shift arguments")
-            for arg in expr.expressions[1:]:
-                self.load_from_stack(src)
-                self.save_on_stack(dst)
-                src -= Compiler.WORDSIZE
-                dst -= Compiler.WORDSIZE
+            self.shift_arguments_for_tail_call(stack_index, expr.expressions[1:])
             self.emitter.mov(offset(RBX, Compiler.WORDSIZE), RAX)
             self.emitter.jmp(dereference(RAX))
         else:
@@ -335,6 +327,17 @@ class Compiler(object):
             self.load_from_stack(closure_register_si)
             self.emitter.mov(RAX, RBX)
             self.load_from_stack(stack_index)
+
+    def shift_arguments_for_tail_call(self, stack_index, arguments):
+        delta = - (stack_index + Compiler.WORDSIZE)
+        src = stack_index + ((len(arguments) - 1) * Compiler.WORDSIZE)
+        dst = stack_index+delta
+        self.emitter.comment("Shift arguments")
+        for arg in arguments:
+            self.load_from_stack(src)
+            self.save_on_stack(dst)
+            src -= Compiler.WORDSIZE
+            dst -= Compiler.WORDSIZE
 
     def emit_application_arguments(self, args, env, stack_index):
         for arg in args:
