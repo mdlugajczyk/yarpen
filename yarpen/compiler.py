@@ -233,9 +233,21 @@ class Compiler(object):
         self.save_on_stack(stack_index)
         closure_stack_index = stack_index
         stack_index -= Compiler.WORDSIZE
-        var_offset = 2
         self.emitter.mov(RAX, RDX)
-        for fv in expr.free_variables:
+        closure_env = self.emit_closure_free_variables(expr.free_variables, env, closure_env, stack_index)
+        self.emitter.jmp(closure_end)
+        self.emitter.function_header(closure_label)
+        self.emitter.comment("Allocating boxed values")
+        self.allocate_boxed_parameters(args, closure_env, stack_index)
+        self.emitter.comment("Compiling closure body: " + closure_label + " " + str(expr))
+        self.compile_expr(body, closure_env, si, tail_position)
+        self.emitter.ret()
+        self.emitter.label(closure_end)
+        self.load_from_stack(closure_stack_index)
+
+    def emit_closure_free_variables(self, free_variables, env, closure_env, stack_index):
+        var_offset = 2
+        for fv in free_variables:
             try:
                 env.get_var(fv)
             except KeyError:
@@ -247,16 +259,7 @@ class Compiler(object):
             closure_env = closure_env.extend(YarpenFreeVarRef(fv.symbol),
                                              index)
             var_offset += 1
-
-        self.emitter.jmp(closure_end)
-        self.emitter.function_header(closure_label)
-        self.emitter.comment("Allocating boxed values")
-        self.allocate_boxed_parameters(args, closure_env, stack_index)
-        self.emitter.comment("Compiling closure body: " + closure_label + " " + str(expr))
-        self.compile_expr(body, closure_env, si, tail_position)
-        self.emitter.ret()
-        self.emitter.label(closure_end)
-        self.load_from_stack(closure_stack_index)
+        return closure_env
 
     def allocate_boxed_parameters(self, parameters, env, stack_index):
         # TODO: could be optimized if we allocated an array for all boxed
