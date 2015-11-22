@@ -97,7 +97,7 @@ class Compiler(object):
         assert(len(expr.expressions) == 2)
         self.compile_expr(expr.expressions[1], env, stack, None)
         self.emitter.and_inst(immediate_const(Compiler.INT_MASK), RAX)
-        self.emitter.cmp(immediate_const(Compiler.INT_TAG), RAX)
+        self.compare_with_constant(Compiler.INT_TAG)
         self.emitter.sete(AL)
         self.emitter.movzbq(AL, RAX)
         self.emitter.shl(immediate_const(Compiler.BOOL_BIT), RAX)
@@ -132,7 +132,7 @@ class Compiler(object):
     def compile_prim_zero_p(self, expr, env, stack):
         assert(len(expr.expressions) == 2)
         self.compile_expr(expr.expressions[1], env, stack, None)
-        self.emitter.cmp(immediate_const(self.int_repr(0)), RAX)
+        self.compare_with_constant(self.int_repr(0))
         self.emitter.sete(AL)
         self.emitter.movzbq(AL, RAX)
         self.emitter.shl(immediate_const(Compiler.BOOL_BIT), RAX)
@@ -140,6 +140,9 @@ class Compiler(object):
 
     def int_repr(self, integer):
         return integer << Compiler.INT_SHIFT
+
+    def compare_with_constant(self, constant):
+        self.emitter.cmp(immediate_const(constant), RAX)
 
     def compile_variable_reference(self, expr, env, stack):
         unboxed_variable = expr
@@ -159,8 +162,8 @@ class Compiler(object):
     def compile_if(self, expr, env, stack, tail_position):
         cond_false_label = self.label_generator.unique_label("false_branch")
         if_end_label = self.label_generator.unique_label("if_end")
-        self.compile_expr(if_condition(expr), env, stack, False)
-        self.emitter.cmp(immediate_const(Compiler.BOOL_FALSE), RAX)
+        self.compile_expr(if_condition(expr), env, stack, False)        
+        self.compare_with_constant(Compiler.BOOL_FALSE)
         self.emitter.jump_equal(cond_false_label)
         self.compile_expr(if_conseq(expr), env, stack, tail_position)
         self.emitter.jmp(if_end_label)
