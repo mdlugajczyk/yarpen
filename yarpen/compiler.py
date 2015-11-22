@@ -78,9 +78,10 @@ class Compiler(object):
 
     def compile_boolean(self, b):
         if b.bool:
-            self.emitter.mov(immediate_const(Compiler.BOOL_TRUE), RAX)
+            value = Compiler.BOOL_TRUE
         else:
-            self.emitter.mov(immediate_const(Compiler.BOOL_FALSE), RAX)
+            value = Compiler.BOOL_FALSE
+        self.emitter.mov(immediate_const(value), RAX)
 
     def compile_primitive_function(self, expr, env, stack_index):
         prim = expr.expressions[0].symbol
