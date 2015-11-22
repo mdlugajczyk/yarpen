@@ -144,7 +144,7 @@ class Compiler(object):
         if is_boxed_value(expr):
             unboxed_variable = expr.boxed_value
         variable_index = env.get_var(unboxed_variable)
-        if isinstance(unboxed_variable, YarpenSymbol):
+        if is_variable(unboxed_variable):
             self.emitter.comment("Loading bound variable: " + str(expr))
             self.load_from_stack(variable_index)
         else:
@@ -179,7 +179,7 @@ class Compiler(object):
         variable = assignment_variable(expr)
         if is_boxed_value(variable):
             self.assign_to_boxed_variable(variable.boxed_value, env, stack_index)
-        elif isinstance(variable, YarpenSymbol):
+        elif is_variable(variable):
             self.emitter.comment("Saving bound variable: " + str(assignment_variable(expr)))
             self.save_on_stack(variable_index)
         else:
