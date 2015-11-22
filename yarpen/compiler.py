@@ -209,9 +209,6 @@ class Compiler(object):
         """
         self.alloc_memory(stack_index,
                           (2 + size_free_variables) * Compiler.WORDSIZE)
-        self.save_on_stack(stack_index)
-        stack_index -= Compiler.WORDSIZE
-
         self.emitter.mov(immediate_const(size_free_variables),
                          offset(RAX, 0))
         self.emitter.lea(label, RDI)
