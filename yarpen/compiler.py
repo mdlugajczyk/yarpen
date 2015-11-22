@@ -189,12 +189,9 @@ class Compiler(object):
 
     def assign_to_boxed_variable(self, var, env, stack_index):
         self.save_on_stack(stack_index)
-        var_index = env.get_var(var)
-        if is_variable(var):
-            self.load_from_stack(var_index)
-            self.emitter.mov(RAX, RDX)
-        else:
-            self.emitter.mov(offset(RBX, var_index), RDX)
+        # Load the variable address.
+        self.compile_variable_reference(var, env, stack_index)
+        self.emitter.mov(RAX, RDX)
         self.load_from_stack(stack_index)
         self.emitter.mov(RAX, offset(RDX,0))
             
