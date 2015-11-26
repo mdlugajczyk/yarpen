@@ -32,7 +32,8 @@ class Compiler(object):
                                     "fx+": self.compile_prim_add,
                                     "fx-": self.compile_prim_sub,
                                     "fx*": self.compile_prim_mul,
-                                    "zero?": self.compile_prim_zero_p}
+                                    "zero?": self.compile_prim_zero_p,
+                                    "closure?": self.compile_prim_closure_p}
         global_variables = [YarpenSymbol(fn) for fn
                             in self.primitive_functions]
         self._code_transformer = CodeTransformer(global_variables)
@@ -149,6 +150,16 @@ class Compiler(object):
         assert(len(expr.expressions) == 2)
         self.compile_expr(expr.expressions[1], env, stack, None)
         self.compare_with_constant(self.int_repr(0))
+        self.emitter.sete(AL)
+        self.emitter.movzbq(AL, RAX)
+        self.emitter.shl(immediate_const(Compiler.BOOL_BIT), RAX)
+        self.emitter.or_inst(immediate_const(Compiler.BOOL_FALSE), RAX)
+
+    def compile_prim_closure_p(self, expr, env, stack):
+        assert(len(expr.expressions) == 2)
+        self.compile_expr(expr.expressions[1], env, stack, None)
+        self.emitter.and_inst(immediate_const(Compiler.OBJECT_MASK), RAX)
+        self.compare_with_constant(Compiler.CLOSURE_TAG)
         self.emitter.sete(AL)
         self.emitter.movzbq(AL, RAX)
         self.emitter.shl(immediate_const(Compiler.BOOL_BIT), RAX)

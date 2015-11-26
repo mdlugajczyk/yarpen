@@ -201,6 +201,13 @@ add_group("TCO",
                       (even (lambda (n) (if (zero? n) #t (odd (fx- n 1))))))
               (odd 198765431))""", "#t")])
 
+add_group("closure?",
+          [("(closure? 0)", "#f"),
+           ("(closure? 1)", "#f"),
+           ("(closure? -10)", "#f"),
+           ("(closure? #t)", "#f"),
+           ("(closure? #f)", "#f"),
+           ("(closure? (let ((f (lambda () 2))) f))", "#t")])
 
 
 run_tests()
