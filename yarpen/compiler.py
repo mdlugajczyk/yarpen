@@ -222,8 +222,8 @@ class Compiler(object):
 
     def alloc_closure(self, stack, size_free_variables, label):
         """ We need to allocate a closure structure holding:
-        (a) number of free variables, (b) addreses of label indicating
-        start of closure's body
+        (a) number of free variables,
+        (b) addreses of label indicating start of closure's body,
         (c) list of free variables
         """
         self.alloc_memory(stack,
