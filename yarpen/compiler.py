@@ -20,6 +20,8 @@ class Compiler(object):
     INT_SHIFT = 2
     BOOL_FALSE = 0x2F
     BOOL_TRUE = 0x6F
+    CLOSURE_TAG = 0x02
+    OBJECT_MASK = 0x07
     WORDSIZE = 8
 
     def __init__(self, source):
@@ -232,6 +234,7 @@ class Compiler(object):
                          offset(RAX, 0))
         self.emitter.lea(label, RDI)
         self.emitter.mov(RDI, offset(RAX, Compiler.WORDSIZE))
+        self.emitter.or_inst(immediate_const(Compiler.CLOSURE_TAG), RAX)
 
     def compile_closure(self, expr, env, stack, tail_position):
         self.emitter.comment("Compiling closure: " + str(expr) + " in env " + str(env))
@@ -247,9 +250,10 @@ class Compiler(object):
                            closure_label)
         self.emitter.comment("Done allocating closure. Saving it on stack.")
         self.save_on_stack(stack.get_index())
+        self.emitter.mov(RAX, RDX)
+        self.untag_closure(RDX)
         closure_stack_index = stack
         stack = stack.next()
-        self.emitter.mov(RAX, RDX)
         closure_env = self.emit_closure_free_variables(expr.free_variables, env, closure_env, stack)
         self.emitter.jmp(closure_end)
         self.emitter.function_header(closure_label)
@@ -299,9 +303,14 @@ class Compiler(object):
 
     def emit_closure(self, expr, env, stack, tail_position):
         self.compile_expr(expr.expressions[0], env, stack, False)
+        self.emitter.comment("FOO")
+        self.untag_closure(RAX)
         self.save_on_stack(stack.get_index())
         closure_stack_index = stack
         return closure_stack_index
+
+    def untag_closure(self, register):
+        self.emitter.sub(immediate_const(Compiler.CLOSURE_TAG), register)
 
     def save_closure_register(self, stack):
         self.emitter.mov(RBX, RAX)
