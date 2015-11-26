@@ -12,6 +12,7 @@ static const int bool_f = 0x2F;
 static const int bool_t = 0x6F;
 static const int object_mask = 0x07;
 static const int closure_tag = 0x03;
+static const int cons_tag = 0x01;
 
 void pyscm_display(pyscm_ptr expr) {
   if ((expr & num_mask) == num_tag) {
@@ -23,6 +24,14 @@ void pyscm_display(pyscm_ptr expr) {
     printf("#f");
   } else if ((expr & object_mask) == closure_tag) {
     printf("closure");
+  } else if ((expr & object_mask) == cons_tag) {
+    pyscm_ptr car = *((pyscm_ptr *)(expr-cons_tag));
+    pyscm_ptr cdr = *((pyscm_ptr *)(expr-cons_tag) + 1);
+    printf("(");
+    pyscm_display(car);
+    printf(" ");
+    pyscm_display(cdr);
+    printf(")");
   } else {
     printf("#<unknown 0x%08llx>", expr);
   }
