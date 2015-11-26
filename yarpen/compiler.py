@@ -21,6 +21,7 @@ class Compiler(object):
     BOOL_FALSE = 0x2F
     BOOL_TRUE = 0x6F
     CLOSURE_TAG = 0x02
+    CONS_TAG = 0x01
     OBJECT_MASK = 0x07
     WORDSIZE = 8
 
@@ -36,7 +37,8 @@ class Compiler(object):
                                     "closure?": self.compile_prim_closure_p,
                                     "cons": self.compile_prim_cons,
                                     "car": self.compile_prim_car,
-                                    "cdr": self.compile_prim_cdr}
+                                    "cdr": self.compile_prim_cdr,
+                                    "cons?": self.compile_prim_cons_p}
         global_variables = [YarpenSymbol(fn) for fn
                             in self.primitive_functions]
         self._code_transformer = CodeTransformer(global_variables)
@@ -167,16 +169,21 @@ class Compiler(object):
         self.load_from_stack(cdr_index.get_index())
         self.emitter.mov(RAX, offset(RDX, Compiler.WORDSIZE))
         self.emitter.mov(RDX, RAX)
+        self.emitter.or_inst(immediate_const(Compiler.CONS_TAG), RAX)
 
     def compile_prim_car(self, expr, env, stack):
         assert(len(expr.expressions) == 2)
         self.compile_expr(expr.expressions[1], env, stack, None)
-        self.emitter.mov(offset(RAX, 0), RAX)
+        self.emitter.mov(offset(RAX, -1), RAX)
 
     def compile_prim_cdr(self, expr, env, stack):
         assert(len(expr.expressions) == 2)
         self.compile_expr(expr.expressions[1], env, stack, None)
-        self.emitter.mov(offset(RAX, Compiler.WORDSIZE), RAX)
+        self.emitter.mov(offset(RAX, Compiler.WORDSIZE - 1), RAX)
+
+    def compile_prim_cons_p(self, expr, env, stack):
+        self.compare_type_tag(expr, env, stack, Compiler.CONS_TAG,
+                              Compiler.OBJECT_MASK)
 
     def compare_type_tag(self, expr, env, stack, tag, mask=None):
         assert(len(expr.expressions) == 2)

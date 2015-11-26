@@ -56,6 +56,7 @@ add_group("Integer functions.",
            ("(integer? #f)", "#f"),
            ("(integer? #t)", "#f"),
            ("(integer? (lambda () 3))", "#f"),
+           ("(integer? (cons 1 2))", "#f"),
            ("(fx+ 2 3)", "5"),
            ("(fx+ -2 3)", "1"),
            ("(fx+ -10 10)", "0"),
@@ -75,7 +76,8 @@ add_group("Integer functions.",
            ("(zero? -1)", "#f"),
            ("(zero? #t)", "#f"),
            ("(zero? #f)", "#f"),
-           ("(zero? (let ((f (lambda () 3))) f))", "#f")])
+           ("(zero? (let ((f (lambda () 3))) f))", "#f"),
+           ("(zero? (cons 1 2))", "#f")])
 
 
 add_group("Let expression.",
@@ -209,7 +211,8 @@ add_group("closure?",
            ("(closure? -10)", "#f"),
            ("(closure? #t)", "#f"),
            ("(closure? #f)", "#f"),
-           ("(closure? (let ((f (lambda () 2))) f))", "#t")])
+           ("(closure? (let ((f (lambda () 2))) f))", "#t"),
+           ("(closure? (cons 1 2))", "#f")])
 
 add_group("cons",
           [("(car (cons 1 2))", "1"),
@@ -219,6 +222,13 @@ add_group("cons",
            ("(let ((x (cons 1 (cons 2 3)))) (car x))", "1"),
            ("(let ((x (cons 1 (cons 2 3)))) (car (cdr x)))", "2"),
            ("(let ((x (cons 1 (cons 2 3)))) (cdr (cdr x)))", "3"),
-           ("(let ((x (cons 1 (cons 2 3)))) (car (cdr (cons x x))))", "1")])
+           ("(let ((x (cons 1 (cons 2 3)))) (car (cdr (cons x x))))", "1"),
+           ("(cons? 0)", "#f"),
+           ("(cons? 1)", "#f"),
+           ("(cons? -10)", "#f"),
+           ("(cons? #t)", "#f"),
+           ("(cons? #f)", "#f"),
+           ("(cons? (let ((f (lambda () 2))) f))", "#f"),
+           ("(cons? (cons 1 2))", "#t")])
 
 run_tests()
