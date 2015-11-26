@@ -38,7 +38,11 @@ class Compiler(object):
                                     "cons": self.compile_prim_cons,
                                     "car": self.compile_prim_car,
                                     "cdr": self.compile_prim_cdr,
-                                    "cons?": self.compile_prim_cons_p}
+                                    "cons?": self.compile_prim_cons_p,
+                                    "set-car!": self.compile_prim_set_car,
+                                    "set-cdr!": self.compile_prim_set_cdr}
+
+        
         global_variables = [YarpenSymbol(fn) for fn
                             in self.primitive_functions]
         self._code_transformer = CodeTransformer(global_variables)
@@ -180,6 +184,21 @@ class Compiler(object):
         assert(len(expr.expressions) == 2)
         self.compile_expr(expr.expressions[1], env, stack, None)
         self.emitter.mov(offset(RAX, Compiler.WORDSIZE - 1), RAX)
+
+    def compile_prim_set_car(self, expr, env, stack):
+        assert(len(expr.expressions) == 3)
+        self.compile_expr(expr.expressions[2], env, stack, None)
+        self.emitter.mov(RAX, RDX)
+        self.compile_expr(expr.expressions[1], env, stack, None)
+        self.emitter.mov(RDX, offset(RAX, -1))
+
+    def compile_prim_set_cdr(self, expr, env, stack):
+        assert(len(expr.expressions) == 3)
+        self.compile_expr(expr.expressions[2], env, stack, None)
+        self.emitter.mov(RAX, RDX)
+        self.compile_expr(expr.expressions[1], env, stack, None)
+        self.emitter.mov(RDX, offset(RAX, 7))        
+
 
     def compile_prim_cons_p(self, expr, env, stack):
         self.compare_type_tag(expr, env, stack, Compiler.CONS_TAG,

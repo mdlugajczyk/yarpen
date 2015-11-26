@@ -229,6 +229,13 @@ add_group("cons",
            ("(cons? #t)", "#f"),
            ("(cons? #f)", "#f"),
            ("(cons? (let ((f (lambda () 2))) f))", "#f"),
-           ("(cons? (cons 1 2))", "#t")])
+           ("(cons? (cons 1 2))", "#t"),
+           ("(let ((x (cons 1 2))) (set-car! x 10) (car x))", "10"),
+           ("(let ((x (cons 1 2))) (set-car! x 10) (cdr x))", "2"),
+           ("(let ((x (cons 1 2))) (set-cdr! x 10) (car x))", "1"),
+           ("(let ((x (cons 1 2))) (set-cdr! x 10) (cdr x))", "10"),
+           ("(letrec ((x (cons 1 2)) (f (lambda () (car x)))) (set-car! x 3) (f))", "3"),
+           ("(letrec ((x (cons 1 2)) (y (cons x x))) (set-car! x 10) (cons (car (car y)) (car (cdr y))))", "(10 10)"),
+           ("(letrec ((x (cons 1 2)) (y (cons x x))) (set-car! x 10) (cons (cdr (car y)) (cdr (cdr y))))", "(2 2)")])
 
 run_tests()
