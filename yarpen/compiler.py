@@ -33,7 +33,10 @@ class Compiler(object):
                                     "fx-": self.compile_prim_sub,
                                     "fx*": self.compile_prim_mul,
                                     "zero?": self.compile_prim_zero_p,
-                                    "closure?": self.compile_prim_closure_p}
+                                    "closure?": self.compile_prim_closure_p,
+                                    "cons": self.compile_prim_cons,
+                                    "car": self.compile_prim_car,
+                                    "cdr": self.compile_prim_cdr}
         global_variables = [YarpenSymbol(fn) for fn
                             in self.primitive_functions]
         self._code_transformer = CodeTransformer(global_variables)
@@ -146,6 +149,34 @@ class Compiler(object):
     def compile_prim_closure_p(self, expr, env, stack):
         self.compare_type_tag(expr, env, stack, Compiler.CLOSURE_TAG,
                               Compiler.OBJECT_MASK)
+
+    def compile_prim_cons(self, expr, env, stack):
+        assert(len(expr.expressions) == 3)
+        self.compile_expr(expr.expressions[1], env, stack, None)
+        self.save_on_stack(stack.get_index())
+        car_index = stack
+        stack = stack.next()
+        self.compile_expr(expr.expressions[2], env, stack, None)
+        cdr_index = stack
+        stack = stack.next()
+        self.save_on_stack(cdr_index.get_index())
+        self.alloc_memory(stack, Compiler.WORDSIZE * 2)
+        self.emitter.mov(RAX, RDX)
+        self.load_from_stack(car_index.get_index())
+        self.emitter.mov(RAX, offset(RDX, 0))
+        self.load_from_stack(cdr_index.get_index())
+        self.emitter.mov(RAX, offset(RDX, Compiler.WORDSIZE))
+        self.emitter.mov(RDX, RAX)
+
+    def compile_prim_car(self, expr, env, stack):
+        assert(len(expr.expressions) == 2)
+        self.compile_expr(expr.expressions[1], env, stack, None)
+        self.emitter.mov(offset(RAX, 0), RAX)
+
+    def compile_prim_cdr(self, expr, env, stack):
+        assert(len(expr.expressions) == 2)
+        self.compile_expr(expr.expressions[1], env, stack, None)
+        self.emitter.mov(offset(RAX, Compiler.WORDSIZE), RAX)
 
     def compare_type_tag(self, expr, env, stack, tag, mask=None):
         assert(len(expr.expressions) == 2)

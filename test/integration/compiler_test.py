@@ -211,5 +211,14 @@ add_group("closure?",
            ("(closure? #f)", "#f"),
            ("(closure? (let ((f (lambda () 2))) f))", "#t")])
 
+add_group("cons",
+          [("(car (cons 1 2))", "1"),
+           ("(cdr (cons 1 2))", "2"),
+           ("(let ((x (cons 1 2))) (car x))", "1"),
+           ("(let ((x (cons 1 2))) (cdr x))", "2"),
+           ("(let ((x (cons 1 (cons 2 3)))) (car x))", "1"),
+           ("(let ((x (cons 1 (cons 2 3)))) (car (cdr x)))", "2"),
+           ("(let ((x (cons 1 (cons 2 3)))) (cdr (cdr x)))", "3"),
+           ("(let ((x (cons 1 (cons 2 3)))) (car (cdr (cons x x))))", "1")])
 
 run_tests()
