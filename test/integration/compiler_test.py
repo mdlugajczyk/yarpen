@@ -55,6 +55,7 @@ add_group("Integer functions.",
            ("(integer? -10)", "#t"),
            ("(integer? #f)", "#f"),
            ("(integer? #t)", "#f"),
+           ("(integer? (lambda () 3))", "#f"),
            ("(fx+ 2 3)", "5"),
            ("(fx+ -2 3)", "1"),
            ("(fx+ -10 10)", "0"),
@@ -73,7 +74,8 @@ add_group("Integer functions.",
            ("(zero? 1)", "#f"),
            ("(zero? -1)", "#f"),
            ("(zero? #t)", "#f"),
-           ("(zero? #f)", "#f")])
+           ("(zero? #f)", "#f"),
+           ("(zero? (let ((f (lambda () 3))) f))", "#f")])
 
 
 add_group("Let expression.",
