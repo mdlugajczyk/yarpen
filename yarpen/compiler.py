@@ -111,14 +111,8 @@ class Compiler(object):
                    for prim in self.primitive_functions)
 
     def compile_prim_integer_p(self, expr, env, stack):
-        assert(len(expr.expressions) == 2)
-        self.compile_expr(expr.expressions[1], env, stack, None)
-        self.emitter.and_inst(immediate_const(Compiler.INT_MASK), RAX)
-        self.compare_with_constant(Compiler.INT_TAG)
-        self.emitter.sete(AL)
-        self.emitter.movzbq(AL, RAX)
-        self.emitter.shl(immediate_const(Compiler.BOOL_BIT), RAX)
-        self.emitter.or_inst(immediate_const(Compiler.BOOL_FALSE), RAX)
+        self.compare_type_tag(expr, env, stack, Compiler.INT_TAG,
+                              Compiler.INT_MASK)
 
     def compile_prim_add(self, expr, env, stack):
         assert(len(expr.expressions) == 3)
@@ -147,19 +141,18 @@ class Compiler(object):
         self.emitter.mul(offset(RSP, stack.get_index()))
 
     def compile_prim_zero_p(self, expr, env, stack):
-        assert(len(expr.expressions) == 2)
-        self.compile_expr(expr.expressions[1], env, stack, None)
-        self.compare_with_constant(self.int_repr(0))
-        self.emitter.sete(AL)
-        self.emitter.movzbq(AL, RAX)
-        self.emitter.shl(immediate_const(Compiler.BOOL_BIT), RAX)
-        self.emitter.or_inst(immediate_const(Compiler.BOOL_FALSE), RAX)
+        self.compare_type_tag(expr, env, stack, self.int_repr(0))
 
     def compile_prim_closure_p(self, expr, env, stack):
+        self.compare_type_tag(expr, env, stack, Compiler.CLOSURE_TAG,
+                              Compiler.OBJECT_MASK)
+
+    def compare_type_tag(self, expr, env, stack, tag, mask=None):
         assert(len(expr.expressions) == 2)
         self.compile_expr(expr.expressions[1], env, stack, None)
-        self.emitter.and_inst(immediate_const(Compiler.OBJECT_MASK), RAX)
-        self.compare_with_constant(Compiler.CLOSURE_TAG)
+        if mask:
+            self.emitter.and_inst(immediate_const(mask), RAX)
+        self.compare_with_constant(tag)
         self.emitter.sete(AL)
         self.emitter.movzbq(AL, RAX)
         self.emitter.shl(immediate_const(Compiler.BOOL_BIT), RAX)
