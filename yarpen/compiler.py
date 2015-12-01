@@ -4,7 +4,7 @@ from .environment import Environment
 from .expression import YarpenFreeVarRef, YarpenSymbol, assignment_value, \
     assignment_variable, begin_expressions, if_alternative, if_condition, \
     if_conseq, is_application, is_assignment, is_begin, is_boolean, is_closure, \
-    is_free_var_reference, is_if, is_number, is_tagged_list, is_variable
+    is_free_var_reference, is_if, is_number, is_tagged_list, is_variable, is_quoted
 from .parser import Parser
 from .registers import AL, RAX, RBX, RDI, RDX, RSP, dereference, \
     immediate_const, offset
@@ -23,6 +23,8 @@ class Compiler(object):
     CLOSURE_TAG = 0x02
     CONS_TAG = 0x01
     OBJECT_MASK = 0x07
+    NIL_TAG = 0x47
+    NIL_MASK = 0xCF
     WORDSIZE = 8
 
     def __init__(self, source):
@@ -40,7 +42,8 @@ class Compiler(object):
                                     "cdr": self.compile_prim_cdr,
                                     "cons?": self.compile_prim_cons_p,
                                     "set-car!": self.compile_prim_set_car,
-                                    "set-cdr!": self.compile_prim_set_cdr}
+                                    "set-cdr!": self.compile_prim_set_cdr,
+                                    "nil?": self.compile_prim_nil_p}
 
         
         global_variables = [YarpenSymbol(fn) for fn
@@ -79,6 +82,8 @@ class Compiler(object):
             self.compile_number(expr)
         elif is_boolean(expr):
             self.compile_boolean(expr)
+        elif is_quoted(expr):
+            self.compile_quoted(expr)
         elif is_variable(expr) or is_free_var_reference(expr) or is_boxed_value(expr):
             self.compile_variable_reference(expr, env, stack)
         elif is_if(expr):
@@ -109,6 +114,13 @@ class Compiler(object):
         else:
             value = Compiler.BOOL_FALSE
         self.emitter.mov(immediate_const(value), RAX)
+
+    def compile_quoted(self, expr):
+        e = expr.datum
+        if is_application(e):
+            if len(e.expressions) == 0:
+                self.emitter.mov(immediate_const(Compiler.NIL_TAG), RAX)
+            
 
     def compile_primitive_function(self, expr, env, stack):
         prim = expr.expressions[0].symbol
@@ -199,6 +211,9 @@ class Compiler(object):
         self.compile_expr(expr.expressions[1], env, stack, None)
         self.emitter.mov(RDX, offset(RAX, 7))        
 
+    def compile_prim_nil_p(self, expr, env, stack):
+        self.compare_type_tag(expr, env, stack, Compiler.NIL_TAG,
+                              Compiler.NIL_MASK)
 
     def compile_prim_cons_p(self, expr, env, stack):
         self.compare_type_tag(expr, env, stack, Compiler.CONS_TAG,

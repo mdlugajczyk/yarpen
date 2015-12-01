@@ -126,6 +126,10 @@ def is_boolean(expr):
     return isinstance(expr, YarpenBoolean)
 
 
+def is_quoted(expr):
+    return isinstance(expr, YarpenQuoted)
+
+
 def is_lambda(expr):
     return is_tagged_list(expr, YarpenSymbol("lambda"))
 

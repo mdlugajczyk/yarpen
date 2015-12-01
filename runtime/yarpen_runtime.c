@@ -13,6 +13,8 @@ static const int bool_t = 0x6F;
 static const int object_mask = 0x07;
 static const int closure_tag = 0x03;
 static const int cons_tag = 0x01;
+static const int nil_tag = 0x47;
+static const int nil_mask = 0xCF;
 
 void pyscm_display(pyscm_ptr expr) {
   if ((expr & num_mask) == num_tag) {
@@ -32,6 +34,8 @@ void pyscm_display(pyscm_ptr expr) {
     printf(" ");
     pyscm_display(cdr);
     printf(")");
+  } else if ((expr & nil_mask) == nil_tag) {
+    printf("()");
   } else {
     printf("#<unknown 0x%08llx>", expr);
   }
