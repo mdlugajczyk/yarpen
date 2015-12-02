@@ -238,8 +238,11 @@ add_group("cons",
            ("(let ((x (cons 1 2))) (set-cdr! x 10) (car x))", "1"),
            ("(let ((x (cons 1 2))) (set-cdr! x 10) (cdr x))", "10"),
            ("(letrec ((x (cons 1 2)) (f (lambda () (car x)))) (set-car! x 3) (f))", "3"),
-           ("(letrec ((x (cons 1 2)) (y (cons x x))) (set-car! x 10) (cons (car (car y)) (car (cdr y))))", "(10 10)"),
-           ("(letrec ((x (cons 1 2)) (y (cons x x))) (set-car! x 10) (cons (cdr (car y)) (cdr (cdr y))))", "(2 2)")])
+           ("(letrec ((x (cons 1 2)) (y (cons x x))) (set-car! x 10) (cons (car (car y)) (car (cdr y))))", "(10 . 10)"),
+           ("(letrec ((x (cons 1 2)) (y (cons x x))) (set-car! x 10) (cons (cdr (car y)) (cdr (cdr y))))", "(2 . 2)"),
+           ("(cons 1 '())", "(1)"),
+           ("(cons 1 (cons 2 (cons 3 '())))", "(1 2 3)"),
+           ("(cons (cons 1 2) (cons 3 (cons (cons 4 5) '())))", "((1 . 2) 3 (4 . 5))")])
 
 add_group("nil",
           [("'()", "()"),

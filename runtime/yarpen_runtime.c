@@ -16,7 +16,40 @@ static const int cons_tag = 0x01;
 static const int nil_tag = 0x47;
 static const int nil_mask = 0xCF;
 
-void pyscm_display(pyscm_ptr expr) {
+void pyscm_display_expr(pyscm_ptr expr, int enclose_in_parens);
+
+int is_pair(pyscm_ptr expr) {
+  return (expr & object_mask) == cons_tag;
+}
+
+int is_nil(pyscm_ptr expr) {
+  return (expr & nil_mask) == nil_tag;
+}
+
+void pyscm_display_pair(pyscm_ptr expr, int enclose_in_parens) {
+  pyscm_ptr car = *((pyscm_ptr *)(expr-cons_tag));
+  pyscm_ptr cdr = *((pyscm_ptr *)(expr-cons_tag) + 1);
+  const int  valid_pair = is_pair(cdr) || is_nil(cdr);
+
+  if (enclose_in_parens)
+    printf("(");
+  pyscm_display_expr(car, 1);
+  if (is_nil(cdr)) {
+    if (enclose_in_parens)
+      printf(")");
+    return;
+  }
+  if (valid_pair)
+    printf(" ");
+  else
+    printf(" . ");
+
+  pyscm_display_expr(cdr, 0);
+  if (enclose_in_parens)
+    printf(")");
+}
+
+void pyscm_display_expr(pyscm_ptr expr, int enclose_with_parens) {
   if ((expr & num_mask) == num_tag) {
     long int res = ((long int) expr) >> num_shift;
     printf("%ld", res);
@@ -26,19 +59,17 @@ void pyscm_display(pyscm_ptr expr) {
     printf("#f");
   } else if ((expr & object_mask) == closure_tag) {
     printf("closure");
-  } else if ((expr & object_mask) == cons_tag) {
-    pyscm_ptr car = *((pyscm_ptr *)(expr-cons_tag));
-    pyscm_ptr cdr = *((pyscm_ptr *)(expr-cons_tag) + 1);
-    printf("(");
-    pyscm_display(car);
-    printf(" ");
-    pyscm_display(cdr);
-    printf(")");
-  } else if ((expr & nil_mask) == nil_tag) {
+  } else if (is_pair(expr)) {
+    pyscm_display_pair(expr, enclose_with_parens);
+  } else if (is_nil(expr)) {
     printf("()");
   } else {
     printf("#<unknown 0x%08llx>", expr);
   }
+}
+
+void pyscm_display(pyscm_ptr expr) {
+  pyscm_display_expr(expr, 1);
 }
 
 void* pyscm_alloc(int size) {
