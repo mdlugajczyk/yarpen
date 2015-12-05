@@ -1,5 +1,5 @@
 
-from .tokens import LParen, RParen, Quote, Boolean, Hash, Symbol, Number
+from .tokens import LParen, RParen, Quote, Boolean, Character, Symbol, Number
 from .tokens import NoTokens
 import re
 
@@ -14,7 +14,7 @@ class Tokenizer(object):
                  ("'", Quote),
                  ("-??((\d+\.\d*)|(\d+.e-??\d+)|\d)+", Number),
                  ("#t|#f", Boolean),
-                 ('#', Hash),
+                 ('#\\\(space|newline|[a-zA-z0-9])', Character),
                  ("({0}|[a-zA-Z]|\d)+".format(extended_alphabetic_character),
                   Symbol)]
         self._rules = [(re.compile(regex), name) for regex, name in rules]

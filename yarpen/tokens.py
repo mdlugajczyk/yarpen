@@ -17,11 +17,6 @@ class Quote:
         pass
 
 
-class Hash:
-    def __init__(self, _):
-        pass
-
-
 class Symbol:
     def __init__(self, sym):
         self.symbol = sym
@@ -35,3 +30,8 @@ class Number:
 class Boolean:
     def __init__(self, bool):
         self.bool = bool
+
+
+class Character:
+    def __init__(self, char):
+        self.character = char

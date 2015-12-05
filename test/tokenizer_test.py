@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-from yarpen.tokens import LParen, RParen, Quote, Hash, NoTokens
+from yarpen.tokens import LParen, RParen, Quote, Character, NoTokens
 from yarpen.tokenizer import Tokenizer
 import unittest
 
@@ -35,18 +35,25 @@ class TokenizerTest(unittest.TestCase):
         self.assertEqual(t.next().number, "10e-3")
         self.assertEqual(t.next().number, "10e34")
 
-    def test_tokenizes_hash_symbol(self):
-        t = Tokenizer("foo #(bar))")
-        self.assertEqual(t.peek().symbol, "foo")
-        self.assertTrue(isinstance(t.next(), Hash))
-        self.assertTrue(isinstance(t.next(), LParen))
-        self.assertEqual(t.next().symbol, "bar")
-        self.assertTrue(isinstance(t.next(), RParen))
-        self.assertTrue(isinstance(t.next(), RParen))
-
     def test_tokenizes_quote(self):
         t = Tokenizer("foo 'bar fnord")
         self.assertEqual(t.peek().symbol, "foo")
         self.assertTrue(isinstance(t.next(), Quote))
         self.assertEqual(t.next().symbol, "bar")
         self.assertEqual(t.next().symbol, "fnord")
+
+    def test_tokenizes_character(self):
+        t= Tokenizer("#\\a #\\b #\\4")
+        self.assertTrue(isinstance(t.peek(), Character))
+        self.assertEqual(t.peek().character, '#\\a')
+        self.assertTrue(isinstance(t.next(), Character))
+        self.assertEqual(t.peek().character, '#\\b')
+        self.assertTrue(isinstance(t.next(), Character))
+        self.assertEqual(t.peek().character, '#\\4')
+
+    def test_tokenizes_whitespace_characters(self):
+        t= Tokenizer("#\\newline #\\space")
+        self.assertTrue(isinstance(t.peek(), Character))
+        self.assertEqual(t.peek().character, '#\\newline')
+        self.assertTrue(isinstance(t.next(), Character))
+        self.assertEqual(t.peek().character, '#\\space')
