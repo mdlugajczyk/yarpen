@@ -1,8 +1,8 @@
 
 from .expression import YarpenList, YarpenNumber, YarpenQuoted, YarpenBoolean
-from .expression import YarpenSymbol
+from .expression import YarpenSymbol, YarpenCharacter
 from .tokens import LParen, RParen, Quote, Boolean, Symbol, Number
-from .tokens import NoTokens
+from .tokens import NoTokens, Character
 from .tokenizer import Tokenizer
 
 
@@ -27,6 +27,8 @@ class Parser:
             return self._parse_boolean()
         elif self._is_quote():
             return self._parse_quoted()
+        elif self._is_character():
+            return self._parse_character()
         else:
             raise Exception("Unknow token %s" % self._get_token())
 
@@ -61,6 +63,14 @@ class Parser:
             exprs.append(self._parse_expression())
         self._consume_rparen()
         return YarpenList(exprs)
+
+    def _parse_character(self):
+        c = self._consume_current_token(Character).character[2:]
+        if c == 'newline':
+            c = "\n"
+        elif c == 'space':
+            c = ' '
+        return YarpenCharacter(c)
 
     def _get_token(self):
         return self._tokenizer.peek()
@@ -106,6 +116,9 @@ class Parser:
 
     def _is_list_end(self):
         return self._is_token_type(RParen)
+
+    def _is_character(self):
+        return self._is_token_type(Character)
 
     def _is_token_type(self, token_type):
         return isinstance(self._get_token(), token_type)

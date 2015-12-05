@@ -52,5 +52,12 @@ class ParserTest(unittest.TestCase):
         self.assertEqual(exp2.symbol, "bar")
         self.assertEqual(exp3.expressions[0].symbol, "baz")
 
+    def test_parse_character(self):
+        p = Parser("#\\a #\\newline #\\space")
+        [a, newline, space] = p.parse()
+        self.assertEqual(a.char, "a")
+        self.assertEqual(newline.char, "\n")
+        self.assertEqual(space.char, " ")
+
 if __name__ == '__main__':
     unittest.main()

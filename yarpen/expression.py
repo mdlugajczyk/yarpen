@@ -118,6 +118,21 @@ class YarpenBoxedValue(object):
         return "BoxedVariable: %s" % self.boxed_value
 
 
+class YarpenCharacter(object):
+    def __init__(self, char):
+        self.char = char
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
+        return self.char == other.char
+
+    def __hash__(self):
+        return hash(self.char)
+
+    def __repr__(self):
+        return "#\\%s" % self.char
+
 def is_number(expr):
     return isinstance(expr, YarpenNumber)
 
