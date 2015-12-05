@@ -4,7 +4,8 @@ from .environment import Environment
 from .expression import YarpenFreeVarRef, YarpenSymbol, assignment_value, \
     assignment_variable, begin_expressions, if_alternative, if_condition, \
     if_conseq, is_application, is_assignment, is_begin, is_boolean, is_closure, \
-    is_free_var_reference, is_if, is_number, is_tagged_list, is_variable, is_quoted
+    is_free_var_reference, is_if, is_number, is_tagged_list, is_variable, is_quoted, \
+    is_character
 from .parser import Parser
 from .registers import AL, RAX, RBX, RDI, RDX, RSP, dereference, \
     immediate_const, offset
@@ -20,6 +21,9 @@ class Compiler(object):
     INT_SHIFT = 2
     BOOL_FALSE = 0x2F
     BOOL_TRUE = 0x6F
+    CHAR_TAG = 0x0F
+    CHAR_MASK = 0x3F
+    CHAR_SHIFT = 8
     CLOSURE_TAG = 0x02
     CONS_TAG = 0x01
     OBJECT_MASK = 0x07
@@ -82,6 +86,8 @@ class Compiler(object):
             self.compile_number(expr)
         elif is_boolean(expr):
             self.compile_boolean(expr)
+        elif is_character(expr):
+            self.compile_character(expr)
         elif is_quoted(expr):
             self.compile_quoted(expr)
         elif is_variable(expr) or is_free_var_reference(expr) or is_boxed_value(expr):
@@ -113,6 +119,10 @@ class Compiler(object):
             value = Compiler.BOOL_TRUE
         else:
             value = Compiler.BOOL_FALSE
+        self.emitter.mov(immediate_const(value), RAX)
+
+    def compile_character(self, char):
+        value = (ord(char.char) << Compiler.CHAR_SHIFT) | Compiler.CHAR_TAG
         self.emitter.mov(immediate_const(value), RAX)
 
     def compile_quoted(self, expr):

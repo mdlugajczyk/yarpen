@@ -241,6 +241,10 @@ def is_begin(expr):
     return is_tagged_list(expr, YarpenSymbol("begin"))
 
 
+def is_character(expr):
+    return isinstance(expr, YarpenCharacter)
+
+
 def is_assignment(expr):
     return is_tagged_list(expr, YarpenSymbol("set!"))
 

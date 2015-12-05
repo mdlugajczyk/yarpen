@@ -15,6 +15,9 @@ static const int closure_tag = 0x03;
 static const int cons_tag = 0x01;
 static const int nil_tag = 0x47;
 static const int nil_mask = 0xCF;
+static const int char_mask = 0x3F;
+static const int char_tag = 0x0F;
+static const int char_shift = 8;
 
 void pyscm_display_expr(pyscm_ptr expr, int enclose_in_parens);
 
@@ -57,6 +60,12 @@ void pyscm_display_expr(pyscm_ptr expr, int enclose_with_parens) {
     printf("#t");
   } else if (expr == bool_f) {
     printf("#f");
+  } else if ((expr & char_mask) == char_tag) {
+    char c = (char)(expr >> char_shift);
+    if (c == '\n' || c == ' ')
+      printf("%c", c);
+    else
+      printf("#\\%c", c);
   } else if ((expr & object_mask) == closure_tag) {
     printf("closure");
   } else if (is_pair(expr)) {

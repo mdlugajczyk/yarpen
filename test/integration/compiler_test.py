@@ -255,4 +255,11 @@ add_group("nil",
            ("(nil? (let ((f (lambda () 2))) f))", "#f"),
            ("(nil? (cons 1 2))", "#f")])
 
+add_group('characters', [('#\\a', '#\\a'),
+                         ('#\\b', '#\\b'),
+                         ('#\\3', '#\\3'),
+                         ('#\\space', ' '),
+                         ('#\\newline', "\n")
+])
+
 run_tests()
