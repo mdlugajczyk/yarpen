@@ -3,7 +3,7 @@ from __future__ import print_function
 import sys
 sys.path.insert(0, '.')
 
-from subprocess import call, getoutput
+from subprocess import call, check_output
 from yarpen.compiler import Compiler
 
 tests = []
@@ -33,7 +33,7 @@ def run_tests():
             print("Failed to compile test.")
             break
 
-        output = getoutput("./yarpen_test")
+        output = check_output("./yarpen_test").decode('ascii')
         if output != test[2]:
             print(("Test failed. Expected %s got %s\nCode: %s"
                   % (test[2], output, test[1])))
