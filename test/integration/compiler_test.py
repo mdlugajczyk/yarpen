@@ -259,7 +259,18 @@ add_group('characters', [('#\\a', '#\\a'),
                          ('#\\b', '#\\b'),
                          ('#\\3', '#\\3'),
                          ('#\\space', ' '),
-                         ('#\\newline', "\n")
-])
+                         ('#\\newline', "\n"),
+                         ("(char? 0)", "#f"),
+                         ("(char? 1)", "#f"),
+                         ("(char? -10)", "#f"),
+                         ("(char? #t)", "#f"),
+                         ("(char? #f)", "#f"),
+                         ("(char? (let ((f (lambda () 2))) f))", "#f"),
+                         ("(char? (cons 1 2))", "#f"),
+                         ("(char? #\\a)", "#t"),
+                         ("(char? #\\b)", "#t"),
+                         ("(char? #\\1)", "#t"),
+                         ("(char? #\\space)", "#t"),
+                         ("(char? #\\newline)", "#t")])
 
 run_tests()

@@ -40,6 +40,7 @@ class Compiler(object):
                                     "fx-": self.compile_prim_sub,
                                     "fx*": self.compile_prim_mul,
                                     "zero?": self.compile_prim_zero_p,
+                                    "char?": self.compile_prim_char_p,
                                     "closure?": self.compile_prim_closure_p,
                                     "cons": self.compile_prim_cons,
                                     "car": self.compile_prim_car,
@@ -144,6 +145,10 @@ class Compiler(object):
     def compile_prim_integer_p(self, expr, env, stack):
         self.compare_type_tag(expr, env, stack, Compiler.INT_TAG,
                               Compiler.INT_MASK)
+
+    def compile_prim_char_p(self, expr, env, stack):
+        self.compare_type_tag(expr, env, stack, Compiler.CHAR_TAG,
+                              Compiler.CHAR_MASK)
 
     def compile_prim_add(self, expr, env, stack):
         assert(len(expr.expressions) == 3)
