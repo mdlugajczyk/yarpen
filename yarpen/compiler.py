@@ -420,6 +420,10 @@ class Compiler(object):
     def compile_application(self, expr, env, stack, tail_position):
         self.emitter.comment("Application: " + str(expr) + " is tail position: " + str(tail_position))
         closure_si = self.emit_closure(expr, env, stack, tail_position)
+        stack = stack.next()
+        args_size = len(expr.expressions) - 1
+        self.emitter.comment("Saving number of arguments :%d" % args_size)
+        self.emitter.mov(immediate_const(args_size), offset(RSP, stack.get_index()))
         if tail_position:
             self.emit_tail_call(expr, env, stack, closure_si)
         else:
