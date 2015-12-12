@@ -388,6 +388,8 @@ class Compiler(object):
     def extend_env_for_closure(self, closure_args, env, stack):
         extended_env = env
         for arg in closure_args:
+            if arg == YarpenSymbol("."):
+                continue
             extended_env = extended_env.extend(arg, stack.get_index())
             stack = stack.next()
         return extended_env, stack
