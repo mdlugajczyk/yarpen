@@ -273,4 +273,11 @@ add_group('characters', [('#\\a', '#\\a'),
                          ("(char? #\\space)", "#t"),
                          ("(char? #\\newline)", "#t")])
 
+add_group('dot in func arguments',
+           [("(let ((f (lambda (x . y) y))) (f 100))", "()"),
+            ("(let ((f (lambda (x y . z) z))) (f 100 200))", "()"),
+            ("(let ((f (lambda (x y z . a) a))) (f 100 200 300))", "()")
+           ])
+               
+
 run_tests()

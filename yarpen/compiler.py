@@ -330,10 +330,11 @@ class Compiler(object):
 
     def compile_closure(self, expr, env, stack, tail_position):
         self.emitter.comment("Compiling closure: " + str(expr) + " in env " + str(env))
-        args = expr.parameters
+        variadic_args, args = self.get_closure_arguments(expr.parameters)
         body = expr.body
         closure_env, si = self.extend_env_for_closure(args, Environment(),
                                                       Stack())
+        self.emitter.comment("Closure env" + str(closure_env))
         closure_label = self.label_generator.unique_label("closure")
         closure_end = self.label_generator.unique_label("closure_end")
 
@@ -349,6 +350,17 @@ class Compiler(object):
         closure_env = self.emit_closure_free_variables(expr.free_variables, env, closure_env, stack)
         self.emitter.jmp(closure_end)
         self.emitter.function_header(closure_label)
+        if variadic_args:
+            self.emitter.comment("Handling variadic number of arguments in env %s" % closure_env)
+            self.emitter.cmp(immediate_const(len(args) - 1), offset(RSP, Compiler.WORDSIZE))
+            nil_label = self.label_generator.unique_label("nil_label")
+            non_nil_label = self.label_generator.unique_label("non_nil_label")
+            self.emitter.jump_equal(nil_label)
+            self.emitter.jmp(non_nil_label)
+            self.emitter.label(nil_label)
+            self.emitter.mov(immediate_const(Compiler.NIL_TAG),
+                             offset(RSP, closure_env.get_var(args[-1])))
+            self.emitter.label(non_nil_label)
         self.emitter.comment("Allocating boxed values")
         self.allocate_boxed_parameters(args, closure_env, stack)
         self.emitter.comment("Compiling closure body: " + closure_label + " " + str(expr))
@@ -356,6 +368,15 @@ class Compiler(object):
         self.emitter.ret()
         self.emitter.label(closure_end)
         self.load_from_stack(closure_stack_index.get_index())
+
+    def get_closure_arguments(self, args):
+        dot = YarpenSymbol(".")
+        if dot not in args:
+            return False, args
+        if args.index(dot) != len(args) - 2:
+            raise Exception("Invalid location of the dot in list of arguments.")
+        args.remove(dot)
+        return True, args
 
     def emit_closure_free_variables(self, free_variables, env, closure_env, stack):
         var_offset = 2
@@ -463,6 +484,9 @@ class Compiler(object):
         delta = -stack.prev().get_index()
         src = Stack(stack.get_index() + ((len(arguments) - 1) * Compiler.WORDSIZE))
         dst = Stack(stack.get_index()+delta)
+        self.emitter.comment("Shifting the number of arguments")
+        self.load_from_stack(src.get_index() + Compiler.WORDSIZE)
+        self.save_on_stack(Compiler.WORDSIZE)
         self.emitter.comment("Shift arguments")
         for arg in arguments:
             self.load_from_stack(src.get_index())
