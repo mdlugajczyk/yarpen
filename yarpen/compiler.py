@@ -194,6 +194,9 @@ class Compiler(object):
         cdr_index = stack
         stack = stack.next()
         self.save_on_stack(cdr_index.get_index())
+        self.make_pair(car_index, cdr_index, stack)
+
+    def make_pair(self, car_index, cdr_index, stack):
         self.alloc_memory(stack, Compiler.WORDSIZE * 2)
         self.emitter.mov(RAX, RDX)
         self.load_from_stack(car_index.get_index())
