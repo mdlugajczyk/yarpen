@@ -15,6 +15,7 @@ from yarpen.stack import Stack
 
 
 class Compiler(object):
+    ENABLE_TCO = True
     BOOL_BIT = 6
     INT_MASK = 0x03
     INT_TAG = 0x00
@@ -73,7 +74,7 @@ class Compiler(object):
         exprs = self._get_transformed_source()
         self.emitter.entry_point_preamble("pyscm_start")
         self.compile_exprs(exprs, Environment(),
-                           Stack(), True)
+                           Stack(), Compiler.ENABLE_TCO)
         self.emitter.ret()
         return self.emitter.emit()
 
@@ -98,7 +99,7 @@ class Compiler(object):
         elif self.is_primitive_function(expr):
             self.compile_primitive_function(expr, env, stack)
         elif is_closure(expr):
-            self.compile_closure(expr, env, stack, True)
+            self.compile_closure(expr, env, stack, Compiler.ENABLE_TCO)
         elif is_begin(expr):
             self.compile_begin(expr, env, stack, tail_position)
         elif is_assignment(expr):
