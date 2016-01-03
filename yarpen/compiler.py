@@ -7,8 +7,8 @@ from .expression import YarpenFreeVarRef, YarpenSymbol, assignment_value, \
     is_free_var_reference, is_if, is_number, is_tagged_list, is_variable, is_quoted, \
     is_character
 from .parser import Parser
-from .registers import AL, RAX, RBX, RDI, RDX, RSP, dereference, \
-    immediate_const, offset
+from .registers import AL, RAX, RBX, RDX, RDI, RSP, R12, \
+dereference, immediate_const, offset, offset_register
 
 from yarpen.expression import is_boxed_value
 from yarpen.stack import Stack
@@ -366,6 +366,9 @@ class Compiler(object):
                              offset(RSP, closure_env.get_var(args[-1])))
             self.emitter.jmp(done_with_variadic_arguments)
             self.emitter.label(non_nil_label)
+            self.emitter.sub(immediate_const(len(args) - 1), offset(RSP, Compiler.WORDSIZE))
+            self.create_list_from_optional_arguments(Stack(closure_env.get_var(args[-1])), si)
+            self.emitter.mov(RAX, offset(RSP, closure_env.get_var(args[-1])))
             self.emitter.label(done_with_variadic_arguments)
         self.emitter.comment("Allocating boxed values")
         self.allocate_boxed_parameters(args, closure_env, stack)
@@ -374,6 +377,70 @@ class Compiler(object):
         self.emitter.ret()
         self.emitter.label(closure_end)
         self.load_from_stack(closure_stack_index.get_index())
+
+    def create_list_from_optional_arguments(self, first_optional_arg, si):
+        self.emitter.comment("Saving RSP")
+        # FIXME: Should be using RBP.
+        # Has to wait until we start following X64 calling convention
+        self.emitter.mov(RSP, R12)
+        self.emitter.comment("Adjusting RSP")
+        self.emitter.sub(immediate_const(-first_optional_arg.get_index()), RSP)
+        self.emitter.sub(immediate_const(-si.get_index() + Compiler.WORDSIZE), RSP)
+        stack = Stack()
+        nil_on_stack = stack
+        stack = stack.next()
+        self.emitter.comment("Storing nil on stack")
+        self.emitter.mov(immediate_const(Compiler.NIL_TAG), offset(RSP, nil_on_stack.get_index()))
+        self.emitter.comment("Making first painr")
+        self.make_pair(offset(R12, first_optional_arg.get_index()), offset(RSP, nil_on_stack.get_index()), stack)
+        self.emitter.comment("Saving on stack - the result")
+        self.save_on_stack(stack.get_index())
+        result_si = stack
+        stack = stack.next()
+        self.emitter.comment("Save arg offset on stack, init with 0")
+        self.emitter.mov(immediate_const(0), offset(RSP, stack.get_index()))
+        args_offset = stack
+        stack = stack.next()
+        
+        loop = self.label_generator.unique_label("make_list_loop")
+        last_element = self.label_generator.unique_label("make_list_last_element")
+
+        # Loop body
+        self.emitter.label(loop)
+        self.emitter.cmp(immediate_const(1), offset(R12, Compiler.WORDSIZE))
+        self.emitter.jump_equal(last_element)
+        self.emitter.comment("Decrement the arg cnt")
+        self.emitter.sub(immediate_const(1), offset(R12, Compiler.WORDSIZE))
+
+        self.emitter.comment("Save the current cons on stack")
+        self.save_on_stack(stack.get_index())
+        
+        # Get the stack location of the next argument
+        self.emitter.comment("Load arg offset")
+        self.load_from_stack(args_offset.get_index())
+        self.emitter.sub(immediate_const(1), RAX)
+        self.save_on_stack(args_offset.get_index())
+        self.emitter.comment("Load next arg")
+        self.emitter.mov(offset_register(R12, first_optional_arg.get_index(), RAX, Compiler.WORDSIZE), RDX)
+
+        # At this point the next argument lives in RDX. We need to allocate a new pair and put it there.
+        new_arg_si = stack.next()
+        self.emitter.mov(RDX, offset(RSP, new_arg_si.get_index()))
+        self.emitter.comment("Make next cons cell")
+        self.make_pair(offset(RSP, new_arg_si.get_index()), offset(RSP, nil_on_stack.get_index()), new_arg_si.next())
+        self.emitter.mov(RAX, RDX)
+        self.emitter.comment("Load previous cons")
+        self.load_from_stack(stack.get_index()) # load the latest pair
+        self.emitter.comment("Set new const as cdr")
+        self.emitter.mov(RDX, offset(RAX, 7))
+        self.emitter.mov(RDX, RAX)
+        
+        self.emitter.jmp(loop)
+
+        # Move nil to cdr of the last pair, we're done
+        self.emitter.label(last_element)
+        self.load_from_stack(result_si.get_index())
+        self.emitter.mov(R12, RSP)
 
     def get_closure_arguments(self, args):
         dot = YarpenSymbol(".")

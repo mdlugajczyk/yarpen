@@ -20,6 +20,10 @@ def offset(reg, offset):
     return '{0}({1})'.format(offset, reg)
 
 
+def offset_register(base_reg, displacement, offset_reg, offset_multiplier):
+    return '{0}({1}, {2}, {3})'.format(displacement, base_reg, offset_reg, offset_multiplier)
+
+
 def immediate_const(const):
     return '${0}'.format(const)
 

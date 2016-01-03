@@ -276,8 +276,13 @@ add_group('characters', [('#\\a', '#\\a'),
 add_group('dot in func arguments',
            [("(let ((f (lambda (x . y) y))) (f 100))", "()"),
             ("(let ((f (lambda (x y . z) z))) (f 100 200))", "()"),
-            ("(let ((f (lambda (x y z . a) a))) (f 100 200 300))", "()")
-           ])
-               
+            ("(let ((f (lambda (x y z . a) a))) (f 100 200 300))", "()"),
+            ("(let ((f (lambda (x y z . a) a))) (f 100 200 300))", "()"),
+            ("(let ((f (lambda (x . y) y))) (f 100 200))", "(200)"),
+            ("(let ((f (lambda (x . y) y))) (f 100 200 300 400))", "(200 300 400)"),
+            ("(let ((f (lambda (x y z . a) a))) (f 100 200 300))", "()"),
+            ("(let ((f (lambda (x y z . a) a))) (f 100 200 300 400))", "(400)"),
+            ("(let ((f (lambda (x . y) y))) (f 100 200 300))", "(200 300)"),
+            ("(let ((f (lambda (. x) x))) (f 100 200 300))", "(100 200 300)")])
 
 run_tests()
