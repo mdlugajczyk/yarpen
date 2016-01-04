@@ -194,14 +194,14 @@ class Compiler(object):
         cdr_index = stack
         stack = stack.next()
         self.save_on_stack(cdr_index.get_index())
-        self.make_pair(car_index, cdr_index, stack)
+        self.make_pair(offset(RSP, car_index.get_index()), offset(RSP, cdr_index.get_index()), stack)
 
-    def make_pair(self, car_index, cdr_index, stack):
+    def make_pair(self, car, cdr, stack):
         self.alloc_memory(stack, Compiler.WORDSIZE * 2)
         self.emitter.mov(RAX, RDX)
-        self.load_from_stack(car_index.get_index())
+        self.emitter.mov(car, RAX)
         self.emitter.mov(RAX, offset(RDX, 0))
-        self.load_from_stack(cdr_index.get_index())
+        self.emitter.mov(cdr, RAX)
         self.emitter.mov(RAX, offset(RDX, Compiler.WORDSIZE))
         self.emitter.mov(RDX, RAX)
         self.emitter.or_inst(immediate_const(Compiler.CONS_TAG), RAX)
