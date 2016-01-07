@@ -228,7 +228,10 @@ class Compiler(object):
         self.compile_expr(expr.expressions[2], env, stack, None)
         self.emitter.mov(RAX, RDX)
         self.compile_expr(expr.expressions[1], env, stack, None)
-        self.emitter.mov(RDX, offset(RAX, 7))        
+        self.set_cdr(RAX, RDX)
+
+    def set_cdr(self, pair_reg, new_cdr_reg):
+        self.emitter.mov(new_cdr_reg, offset(pair_reg, 7))
 
     def compile_prim_nil_p(self, expr, env, stack):
         self.compare_type_tag(expr, env, stack, Compiler.NIL_TAG,
@@ -422,7 +425,6 @@ class Compiler(object):
         self.load_next_optional_argument(argument_offset=args_offset, stack_register=R12,
                                          first_optional_arg=first_optional_arg, result_register=RDX)
         self.wrap_optional_argument_into_pair(RDX, stack.next(), nil_on_stack, RDX)
-        
         self.emitter.comment("Load previous cons")
         self.load_from_stack(stack.get_index()) # load the latest pair
         self.emitter.comment("Set new const as cdr")
