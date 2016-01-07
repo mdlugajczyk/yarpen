@@ -6,8 +6,8 @@ class Stack(object):
     def get_index(self):
         return self._index;
 
-    def next(self):
+    def get_next_stack(self):
         return Stack(self._index - Stack.WORDSIZE)
 
-    def prev(self):
+    def get_prev_stack(self):
         return Stack(self._index + Stack.WORDSIZE)

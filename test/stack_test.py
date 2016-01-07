@@ -8,15 +8,15 @@ class StackTest(TestCase):
 
     def grows_downwards_by_wordsize_test(self):
         s = Stack()
-        self.assertEqual(s.next().get_index(), -16)
+        self.assertEqual(s.get_next_stack().get_index(), -16)
 
     def previous_index_test(self):
-        s = Stack().next()
-        self.assertEqual(s.prev().get_index(), -8)
+        s = Stack().get_next_stack()
+        self.assertEqual(s.get_prev_stack().get_index(), -8)
 
     def each_stack_maintains_separate_index_test(self):
         s = Stack()
-        s2 = s.next()
-        s2 = s2.next()
+        s2 = s.get_next_stack()
+        s2 = s2.get_next_stack()
         self.assertEqual(s2.get_index(), -24)
         self.assertEqual(s.get_index(), -8)

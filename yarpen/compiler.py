@@ -156,7 +156,7 @@ class Compiler(object):
         self.compile_expr(expr.expressions[1], env, stack, None)
         self.save_on_stack(stack.get_index())
         self.compile_expr(expr.expressions[2], env,
-                          stack.next(), None)
+                          stack.get_next_stack(), None)
         self.emitter.add(offset(RSP, stack.get_index()), RAX)
 
     def compile_prim_sub(self, expr, env, stack):
@@ -164,7 +164,7 @@ class Compiler(object):
         self.compile_expr(expr.expressions[1], env, stack, None)
         self.save_on_stack(stack.get_index())
         self.compile_expr(expr.expressions[2], env,
-                          stack.next(), None)
+                          stack.get_next_stack(), None)
         self.emitter.sub(RAX, offset(RSP, stack.get_index()))
         self.load_from_stack(stack.get_index())
 
@@ -173,7 +173,7 @@ class Compiler(object):
         self.compile_expr(expr.expressions[1], env, stack, None)
         self.save_on_stack(stack.get_index())
         self.compile_expr(expr.expressions[2], env,
-                          stack.next(), None)
+                          stack.get_next_stack(), None)
         self.emitter.shr(immediate_const(Compiler.INT_SHIFT), RAX)
         self.emitter.mul(offset(RSP, stack.get_index()))
 
@@ -189,10 +189,10 @@ class Compiler(object):
         self.compile_expr(expr.expressions[1], env, stack, None)
         self.save_on_stack(stack.get_index())
         car_index = stack
-        stack = stack.next()
+        stack = stack.get_next_stack()
         self.compile_expr(expr.expressions[2], env, stack, None)
         cdr_index = stack
-        stack = stack.next()
+        stack = stack.get_next_stack()
         self.save_on_stack(cdr_index.get_index())
         self.make_pair(offset(RSP, car_index.get_index()), offset(RSP, cdr_index.get_index()), stack)
 
@@ -314,7 +314,7 @@ class Compiler(object):
         self.emitter.mov(RAX, offset(RDX,0))
             
     def alloc_memory(self, stack, size):
-        stack = stack.prev()
+        stack = stack.get_prev_stack()
         self.adjust_base(stack.get_index())
         self.emitter.mov(immediate_const(size), RDI)
         self.emitter.call("pyscm_alloc")
@@ -351,7 +351,7 @@ class Compiler(object):
         self.emitter.mov(RAX, RDX)
         self.untag_closure(RDX)
         closure_stack_index = stack
-        stack = stack.next()
+        stack = stack.get_next_stack()
         closure_env = self.emit_closure_free_variables(expr.free_variables, env, closure_env, stack)
         self.emitter.jmp(closure_end)
         self.emitter.function_header(closure_label)
@@ -395,7 +395,7 @@ class Compiler(object):
         self.emitter.sub(immediate_const(-si.get_index() + Compiler.WORDSIZE), RSP)
         stack = Stack()
         nil_on_stack = stack
-        stack = stack.next()
+        stack = stack.get_next_stack()
         self.emitter.comment("Storing nil on stack")
         self.emitter.mov(immediate_const(Compiler.NIL_TAG), offset(RSP, nil_on_stack.get_index()))
         self.emitter.comment("Making first painr")
@@ -403,11 +403,11 @@ class Compiler(object):
         self.emitter.comment("Saving on stack - the result")
         self.save_on_stack(stack.get_index())
         result_si = stack
-        stack = stack.next()
+        stack = stack.get_next_stack()
         self.emitter.comment("Save arg offset on stack, init with 0")
         self.emitter.mov(immediate_const(0), offset(RSP, stack.get_index()))
         args_offset = stack
-        stack = stack.next()
+        stack = stack.get_next_stack()
         
         loop = self.label_generator.unique_label("make_list_loop")
         last_element = self.label_generator.unique_label("make_list_last_element")
@@ -424,7 +424,7 @@ class Compiler(object):
         
         self.load_next_optional_argument(argument_offset=args_offset, stack_register=R12,
                                          first_optional_arg=first_optional_arg, result_register=RDX)
-        self.wrap_optional_argument_into_pair(RDX, stack.next(), nil_on_stack, RDX)
+        self.wrap_optional_argument_into_pair(RDX, stack.get_next_stack(), nil_on_stack, RDX)
         self.emitter.comment("Load previous cons")
         self.load_from_stack(stack.get_index())
         self.set_cdr(RAX, RDX)
@@ -448,7 +448,7 @@ class Compiler(object):
     def wrap_optional_argument_into_pair(self, arg_register, si, nil_stack_location, result_reg=RAX):
         self.emitter.mov(arg_register, offset(RSP, si.get_index()))
         self.emitter.comment("Make next cons cell")
-        self.make_pair(offset(RSP, si.get_index()), offset(RSP, nil_stack_location.get_index()), si.next())
+        self.make_pair(offset(RSP, si.get_index()), offset(RSP, nil_stack_location.get_index()), si.get_next_stack())
         self.emitter.mov(RAX, result_reg)
 
     def get_closure_arguments(self, args):
@@ -495,7 +495,7 @@ class Compiler(object):
             if arg == YarpenSymbol("."):
                 continue
             extended_env = extended_env.extend(arg, stack.get_index())
-            stack = stack.next()
+            stack = stack.get_next_stack()
         return extended_env, stack
 
     def emit_closure(self, expr, env, stack, tail_position):
@@ -518,7 +518,7 @@ class Compiler(object):
         self.load_from_stack(closure_si.get_index())
         self.emitter.mov(RAX, RBX)
         self.emitter.mov(offset(RAX, Compiler.WORDSIZE), RAX)
-        stack = stack.prev()
+        stack = stack.get_prev_stack()
         self.adjust_base(stack.get_index())
         self.emitter.call(dereference(RAX))
         self.adjust_base(- stack.get_index())
@@ -526,7 +526,7 @@ class Compiler(object):
     def compile_application(self, expr, env, stack, tail_position):
         self.emitter.comment("Application: " + str(expr) + " is tail position: " + str(tail_position))
         closure_si = self.emit_closure(expr, env, stack, tail_position)
-        stack = stack.next()
+        stack = stack.get_next_stack()
         args_size = len(expr.expressions) - 1
         self.emitter.comment("Saving number of arguments :%d" % args_size)
         self.emitter.mov(immediate_const(args_size), offset(RSP, stack.get_index()))
@@ -550,20 +550,20 @@ class Compiler(object):
         self.emitter.jmp(dereference(RAX))
 
     def emit_call(self, expr, env, stack, closure_si):
-        stack = stack.next()
+        stack = stack.get_next_stack()
         self.emitter.comment("Emit args.")
         self.emit_application_arguments(expr.expressions[1:],
                                         env, stack)
         closure_register_si = self.save_closure_register(stack)
         self.emit_closure_app(closure_si, stack)
-        stack = stack.next()
+        stack = stack.get_next_stack()
         self.save_on_stack(stack.get_index())
         self.load_from_stack(closure_register_si.get_index())
         self.emitter.mov(RAX, RBX)
         self.load_from_stack(stack.get_index())
 
     def shift_arguments_for_tail_call(self, stack, arguments):
-        delta = -stack.prev().get_index()
+        delta = -stack.get_prev_stack().get_index()
         src = Stack(stack.get_index() + ((len(arguments) - 1) * Compiler.WORDSIZE))
         dst = Stack(stack.get_index()+delta)
         self.emitter.comment("Shifting the number of arguments")
@@ -573,12 +573,12 @@ class Compiler(object):
         for arg in arguments:
             self.load_from_stack(src.get_index())
             self.save_on_stack(dst.get_index())
-            src = src.next()
-            dst = dst.next()
+            src = src.get_next_stack()
+            dst = dst.get_next_stack()
 
     def emit_application_arguments(self, args, env, stack):
         for arg in args:
-            stack = stack.next()
+            stack = stack.get_next_stack()
             self.compile_expr(arg, env, stack, False)
             self.save_on_stack(stack.get_index())
         return stack
