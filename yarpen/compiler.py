@@ -419,13 +419,8 @@ class Compiler(object):
         self.emitter.comment("Save the current cons on stack")
         self.save_on_stack(stack.get_index())
         
-        # Get the stack location of the next argument
-        self.emitter.comment("Load arg offset")
-        self.load_from_stack(args_offset.get_index())
-        self.emitter.sub(immediate_const(1), RAX)
-        self.save_on_stack(args_offset.get_index())
-        self.emitter.comment("Load next arg")
-        self.emitter.mov(offset_register(R12, first_optional_arg.get_index(), RAX, Compiler.WORDSIZE), RDX)
+        self.load_next_optional_argument(argument_offset=args_offset, stack_register=R12,
+                                         first_optional_arg=first_optional_arg, result_register=RDX)
 
         # At this point the next argument lives in RDX. We need to allocate a new pair and put it there.
         new_arg_si = stack.next()
@@ -445,6 +440,14 @@ class Compiler(object):
         self.emitter.label(last_element)
         self.load_from_stack(result_si.get_index())
         self.emitter.mov(R12, RSP)
+
+    def load_next_optional_argument(self, argument_offset=0, stack_register=RSP, first_optional_arg=0, result_register=RDX):
+        self.emitter.comment("Load arg offset")
+        self.load_from_stack(argument_offset.get_index())
+        self.emitter.sub(immediate_const(1), RAX)
+        self.save_on_stack(argument_offset.get_index())
+        self.emitter.comment("Load next arg")
+        self.emitter.mov(offset_register(stack_register, first_optional_arg.get_index(), RAX, Compiler.WORDSIZE), result_register)
 
     def get_closure_arguments(self, args):
         dot = YarpenSymbol(".")
