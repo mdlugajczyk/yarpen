@@ -421,13 +421,8 @@ class Compiler(object):
         
         self.load_next_optional_argument(argument_offset=args_offset, stack_register=R12,
                                          first_optional_arg=first_optional_arg, result_register=RDX)
-
-        # At this point the next argument lives in RDX. We need to allocate a new pair and put it there.
-        new_arg_si = stack.next()
-        self.emitter.mov(RDX, offset(RSP, new_arg_si.get_index()))
-        self.emitter.comment("Make next cons cell")
-        self.make_pair(offset(RSP, new_arg_si.get_index()), offset(RSP, nil_on_stack.get_index()), new_arg_si.next())
-        self.emitter.mov(RAX, RDX)
+        self.wrap_optional_argument_into_pair(RDX, stack.next(), nil_on_stack, RDX)
+        
         self.emitter.comment("Load previous cons")
         self.load_from_stack(stack.get_index()) # load the latest pair
         self.emitter.comment("Set new const as cdr")
@@ -448,6 +443,12 @@ class Compiler(object):
         self.save_on_stack(argument_offset.get_index())
         self.emitter.comment("Load next arg")
         self.emitter.mov(offset_register(stack_register, first_optional_arg.get_index(), RAX, Compiler.WORDSIZE), result_register)
+
+    def wrap_optional_argument_into_pair(self, arg_register, si, nil_stack_location, result_reg=RAX):
+        self.emitter.mov(arg_register, offset(RSP, si.get_index()))
+        self.emitter.comment("Make next cons cell")
+        self.make_pair(offset(RSP, si.get_index()), offset(RSP, nil_stack_location.get_index()), si.next())
+        self.emitter.mov(RAX, result_reg)
 
     def get_closure_arguments(self, args):
         dot = YarpenSymbol(".")
