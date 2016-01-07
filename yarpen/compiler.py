@@ -340,7 +340,6 @@ class Compiler(object):
         self.emitter.comment("Closure env" + str(closure_env))
         closure_label = self.label_generator.unique_label("closure")
         closure_end = self.label_generator.unique_label("closure_end")
-
         self.emitter.comment("Allocating closure.")
         self.alloc_closure(stack, len(expr.free_variables),
                            closure_label)
@@ -354,22 +353,7 @@ class Compiler(object):
         self.emitter.jmp(closure_end)
         self.emitter.function_header(closure_label)
         if variadic_args:
-            self.emitter.comment("Handling variadic number of arguments in env %s" % closure_env)
-            self.emitter.cmp(immediate_const(len(args) - 1), offset(RSP, Compiler.WORDSIZE))
-            nil_label = self.label_generator.unique_label("nil_label")
-            non_nil_label = self.label_generator.unique_label("non_nil_label")
-            done_with_variadic_arguments = self.label_generator.unique_label("done_with_variadic_arguments")
-            self.emitter.jump_equal(nil_label)
-            self.emitter.jmp(non_nil_label)
-            self.emitter.label(nil_label)
-            self.emitter.mov(immediate_const(Compiler.NIL_TAG),
-                             offset(RSP, closure_env.get_var(args[-1])))
-            self.emitter.jmp(done_with_variadic_arguments)
-            self.emitter.label(non_nil_label)
-            self.emitter.sub(immediate_const(len(args) - 1), offset(RSP, Compiler.WORDSIZE))
-            self.create_list_from_optional_arguments(Stack(closure_env.get_var(args[-1])), si)
-            self.emitter.mov(RAX, offset(RSP, closure_env.get_var(args[-1])))
-            self.emitter.label(done_with_variadic_arguments)
+            self.transform_optional_arguments(closure_env, args, si)
         self.emitter.comment("Allocating boxed values")
         self.allocate_boxed_parameters(args, closure_env, stack)
         self.emitter.comment("Compiling closure body: " + closure_label + " " + str(expr))
@@ -377,6 +361,26 @@ class Compiler(object):
         self.emitter.ret()
         self.emitter.label(closure_end)
         self.load_from_stack(closure_stack_index.get_index())
+
+    def transform_optional_arguments(self, closure_env, args, si):
+        """ Build a list of optional arguments.
+        """
+        self.emitter.comment("Handling variadic number of arguments in env %s" % closure_env)
+        self.emitter.cmp(immediate_const(len(args) - 1), offset(RSP, Compiler.WORDSIZE))
+        nil_label = self.label_generator.unique_label("nil_label")
+        non_nil_label = self.label_generator.unique_label("non_nil_label")
+        done_with_variadic_arguments = self.label_generator.unique_label("done_with_variadic_arguments")
+        self.emitter.jump_equal(nil_label)
+        self.emitter.jmp(non_nil_label)
+        self.emitter.label(nil_label)
+        self.emitter.mov(immediate_const(Compiler.NIL_TAG),
+                         offset(RSP, closure_env.get_var(args[-1])))
+        self.emitter.jmp(done_with_variadic_arguments)
+        self.emitter.label(non_nil_label)
+        self.emitter.sub(immediate_const(len(args) - 1), offset(RSP, Compiler.WORDSIZE))
+        self.create_list_from_optional_arguments(Stack(closure_env.get_var(args[-1])), si)
+        self.emitter.mov(RAX, offset(RSP, closure_env.get_var(args[-1])))
+        self.emitter.label(done_with_variadic_arguments)
 
     def create_list_from_optional_arguments(self, first_optional_arg, si):
         self.emitter.comment("Saving RSP")
