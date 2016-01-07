@@ -426,9 +426,8 @@ class Compiler(object):
                                          first_optional_arg=first_optional_arg, result_register=RDX)
         self.wrap_optional_argument_into_pair(RDX, stack.next(), nil_on_stack, RDX)
         self.emitter.comment("Load previous cons")
-        self.load_from_stack(stack.get_index()) # load the latest pair
-        self.emitter.comment("Set new const as cdr")
-        self.emitter.mov(RDX, offset(RAX, 7))
+        self.load_from_stack(stack.get_index())
+        self.set_cdr(RAX, RDX)
         self.emitter.mov(RDX, RAX)
         
         self.emitter.jmp(loop)
