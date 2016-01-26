@@ -1,0 +1,39 @@
+#!/usr/bin/env python
+
+import argparse
+import inspect
+import os
+import sys
+from subprocess import call
+from yarpen.compiler import Compiler
+
+def get_runtime_file_path():
+    current_path = inspect.getfile(inspect.currentframe())
+    parent = os.path.abspath(os.path.join(current_path,
+                                          os.pardir,
+                                          os.pardir,
+                                          'runtime/yarpen_runtime.c'))
+    return parent
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="Compile Scheme code.")
+    parser.add_argument('-S', action='store_true',help='Generate assembly')
+    parser.add_argument('input')
+    return parser.parse_args()
+
+if __name__ == '__main__':
+    args = parse_arguments()
+    with open(args.input, 'r') as f:
+        code = f.read()
+    compiler = Compiler(code)
+    compiled_code = compiler.compile()
+    compiled_file = args.input + '_compiled.s'
+    with open(compiled_file, 'w') as f:
+        f.write(compiled_code)
+    if not args.S:
+        output = os.path.basename(args.input) + ".out"
+        compilation_status = call(["gcc", get_runtime_file_path(),
+                                   compiled_file, "-o", output, "-g"])
+        if compilation_status != 0:
+            print("Failed to build the project with gcc.")
+            sys.exit(1)
