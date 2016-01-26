@@ -1,10 +1,6 @@
 from __future__ import absolute_import
 from __future__ import print_function
-import sys
-sys.path.insert(0, '.')
-
 from subprocess import call, check_output
-from yarpen.compiler import Compiler
 
 tests = []
 
@@ -23,17 +19,14 @@ def add_group(name, tests):
 def run_tests():
     for test in reversed(tests):
         print(("Working on test: %s" % test[0]))
-        compiler = Compiler(test[1])
-        code = compiler.compile()
         with open("yarpen_code.s", "w") as f:
-            f.write(code)
-        compilation_status = call(["gcc", "runtime/yarpen_runtime.c",
-                                   "yarpen_code.s", "-o", "yarpen_test", "-g"])
+            f.write(test[1])
+        compilation_status = call(["./bin/yarpen", "yarpen_code.s"])
         if compilation_status != 0:
             print("Failed to compile test.")
             break
 
-        output = check_output("./yarpen_test").decode('ascii')
+        output = check_output("./yarpen_code.s.out").decode('ascii')
         if output != test[2]:
             print(("Test failed. Expected %s got %s\nCode: %s"
                   % (test[2], output, test[1])))
