@@ -18,3 +18,8 @@ class EnvironmentTest(TestCase):
         env = Environment(bindings={"foo": "bar"})
         extended = env.extend("foo", "fnord")
         self.assertEqual(extended.get_var("foo"), "fnord")
+
+    def test_set_var(self):
+        env = Environment()
+        env.set_var("foo", 3)
+        self.assertEqual(env.get_var("foo"), 3)
