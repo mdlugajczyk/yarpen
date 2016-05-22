@@ -1,3 +1,5 @@
+from registers import RSP, RBP
+
 class Emitter(object):
     def __init__(self):
         self.code = ""
@@ -83,3 +85,7 @@ class Emitter(object):
 
     def pop(self, dst):
         self.unary_instruction("popq", dst)
+
+    def leave(self):
+        self.mov(RBP, RSP)
+        self.pop(RBP)

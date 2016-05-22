@@ -77,8 +77,7 @@ class Compiler(object):
         self.emitter.mov(RSP, RBP)
         self.compile_exprs(exprs, Environment(),
                            Stack(), Compiler.ENABLE_TCO)
-        self.emitter.mov(RBP, RSP)
-        self.emitter.pop(RBP)
+        self.emitter.leave()
         self.emitter.ret()
         return self.emitter.emit()
 
@@ -115,6 +114,7 @@ class Compiler(object):
 
         if ((is_number(expr) or is_boolean(expr)  or is_variable(expr)
              or is_free_var_reference(expr)) and tail_position):
+            self.emitter.leave()
             self.emitter.ret()
 
     def compile_number(self, num):
@@ -367,8 +367,7 @@ class Compiler(object):
         self.allocate_boxed_parameters(args, closure_env, stack)
         self.emitter.comment("Compiling closure body: " + closure_label + " " + str(expr))
         self.compile_expr(body, closure_env, si, tail_position)
-        self.emitter.mov(RBP, RSP)
-        self.emitter.pop(RBP)
+        self.emitter.leave()
         self.emitter.ret()
         self.emitter.label(closure_end)
         self.load_from_stack(closure_stack_index.get_index())
