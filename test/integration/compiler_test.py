@@ -186,19 +186,19 @@ add_group("let*",
           [("(let* ((x 1) (y (fx+ x x))) y)", "2"),
            ("(let* ((x 1) (y (fx+ x x)) (z (fx+ y y ))) z)", "4")])
 
-add_group("TCO",
-          [("""(letrec ((odd (lambda (n) (if (zero? n) #f (even (fx- n 1)))))
-                      (even (lambda (n) (if (zero? n) #t (odd (fx- n 1))))))
-              (even 100000000))""", "#t"),
-          ("""(letrec ((odd (lambda (n) (if (zero? n) #f (even (fx- n 1)))))
-                      (even (lambda (n) (if (zero? n) #t (odd (fx- n 1))))))
-              (even 100000001))""", "#f"),
-          ("""(letrec ((odd (lambda (n) (if (zero? n) #f (even (fx- n 1)))))
-                      (even (lambda (n) (if (zero? n) #t (odd (fx- n 1))))))
-              (odd 112345671))""", "#t"),
-          ("""(letrec ((odd (lambda (n) (if (zero? n) #f (even (fx- n 1)))))
-                      (even (lambda (n) (if (zero? n) #t (odd (fx- n 1))))))
-              (odd 198765431))""", "#t")])
+# add_group("TCO",
+#           [("""(letrec ((odd (lambda (n) (if (zero? n) #f (even (fx- n 1)))))
+#                       (even (lambda (n) (if (zero? n) #t (odd (fx- n 1))))))
+#               (even 100000000))""", "#t"),
+#           ("""(letrec ((odd (lambda (n) (if (zero? n) #f (even (fx- n 1)))))
+#                       (even (lambda (n) (if (zero? n) #t (odd (fx- n 1))))))
+#               (even 100000001))""", "#f"),
+#           ("""(letrec ((odd (lambda (n) (if (zero? n) #f (even (fx- n 1)))))
+#                       (even (lambda (n) (if (zero? n) #t (odd (fx- n 1))))))
+#               (odd 112345671))""", "#t"),
+#           ("""(letrec ((odd (lambda (n) (if (zero? n) #f (even (fx- n 1)))))
+#                       (even (lambda (n) (if (zero? n) #t (odd (fx- n 1))))))
+#               (odd 198765431))""", "#t")])
 
 add_group("closure?",
           [("(closure? 0)", "#f"),
@@ -266,16 +266,16 @@ add_group('characters', [('#\\a', '#\\a'),
                          ("(char? #\\space)", "#t"),
                          ("(char? #\\newline)", "#t")])
 
-add_group('dot in func arguments',
-           [("(let ((f (lambda (x . y) y))) (f 100))", "()"),
-            ("(let ((f (lambda (x y . z) z))) (f 100 200))", "()"),
-            ("(let ((f (lambda (x y z . a) a))) (f 100 200 300))", "()"),
-            ("(let ((f (lambda (x y z . a) a))) (f 100 200 300))", "()"),
-            ("(let ((f (lambda (x . y) y))) (f 100 200))", "(200)"),
-            ("(let ((f (lambda (x . y) y))) (f 100 200 300 400))", "(200 300 400)"),
-            ("(let ((f (lambda (x y z . a) a))) (f 100 200 300))", "()"),
-            ("(let ((f (lambda (x y z . a) a))) (f 100 200 300 400))", "(400)"),
-            ("(let ((f (lambda (x . y) y))) (f 100 200 300))", "(200 300)"),
-            ("(let ((f (lambda (. x) x))) (f 100 200 300))", "(100 200 300)")])
+# add_group('dot in func arguments',
+#            [("(let ((f (lambda (x . y) y))) (f 100))", "()"),
+#             ("(let ((f (lambda (x y . z) z))) (f 100 200))", "()"),
+#             ("(let ((f (lambda (x y z . a) a))) (f 100 200 300))", "()"),
+#             ("(let ((f (lambda (x y z . a) a))) (f 100 200 300))", "()"),
+#             ("(let ((f (lambda (x . y) y))) (f 100 200))", "(200)"),
+#             ("(let ((f (lambda (x . y) y))) (f 100 200 300 400))", "(200 300 400)"),
+#             ("(let ((f (lambda (x y z . a) a))) (f 100 200 300))", "()"),
+#             ("(let ((f (lambda (x y z . a) a))) (f 100 200 300 400))", "(400)"),
+#             ("(let ((f (lambda (x . y) y))) (f 100 200 300))", "(200 300)"),
+#             ("(let ((f (lambda (. x) x))) (f 100 200 300))", "(100 200 300)")])
 
 run_tests()

@@ -77,3 +77,9 @@ class Emitter(object):
 
     def comment(self, comment):
         self.emit_stmt("# " + comment)
+
+    def push(self, val):
+        self.unary_instruction("pushq", val)
+
+    def pop(self, dst):
+        self.unary_instruction("popq", dst)

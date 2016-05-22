@@ -7,7 +7,7 @@ from .expression import YarpenFreeVarRef, YarpenSymbol, assignment_value, \
     is_free_var_reference, is_if, is_number, is_tagged_list, is_variable, is_quoted, \
     is_character
 from .parser import Parser
-from .registers import AL, RAX, RBX, RDX, RDI, RSP, R12, \
+from .registers import AL, RAX, RBX, RDX, RDI, RSP, R12, RBP, \
 dereference, immediate_const, offset, offset_register
 
 from yarpen.expression import is_boxed_value
@@ -15,7 +15,7 @@ from yarpen.stack import Stack
 
 
 class Compiler(object):
-    ENABLE_TCO = True
+    ENABLE_TCO = False
     BOOL_BIT = 6
     INT_MASK = 0x03
     INT_TAG = 0x00
@@ -73,8 +73,12 @@ class Compiler(object):
         """
         exprs = self._get_transformed_source()
         self.emitter.entry_point_preamble("pyscm_start")
+        self.emitter.push(RBP)
+        self.emitter.mov(RSP, RBP)
         self.compile_exprs(exprs, Environment(),
                            Stack(), Compiler.ENABLE_TCO)
+        self.emitter.mov(RBP, RSP)
+        self.emitter.pop(RBP)
         self.emitter.ret()
         return self.emitter.emit()
 
@@ -157,7 +161,7 @@ class Compiler(object):
         self.save_on_stack(stack.get_index())
         self.compile_expr(expr.expressions[2], env,
                           stack.get_next_stack(), None)
-        self.emitter.add(offset(RSP, stack.get_index()), RAX)
+        self.emitter.add(offset(RBP, stack.get_index()), RAX)
 
     def compile_prim_sub(self, expr, env, stack):
         assert(len(expr.expressions) == 3)
@@ -165,7 +169,7 @@ class Compiler(object):
         self.save_on_stack(stack.get_index())
         self.compile_expr(expr.expressions[2], env,
                           stack.get_next_stack(), None)
-        self.emitter.sub(RAX, offset(RSP, stack.get_index()))
+        self.emitter.sub(RAX, offset(RBP, stack.get_index()))
         self.load_from_stack(stack.get_index())
 
     def compile_prim_mul(self, expr, env, stack):
@@ -175,7 +179,7 @@ class Compiler(object):
         self.compile_expr(expr.expressions[2], env,
                           stack.get_next_stack(), None)
         self.emitter.shr(immediate_const(Compiler.INT_SHIFT), RAX)
-        self.emitter.mul(offset(RSP, stack.get_index()))
+        self.emitter.mul(offset(RBP, stack.get_index()))
 
     def compile_prim_zero_p(self, expr, env, stack):
         self.compare_type_tag(expr, env, stack, self.int_repr(0))
@@ -194,7 +198,7 @@ class Compiler(object):
         cdr_index = stack
         stack = stack.get_next_stack()
         self.save_on_stack(cdr_index.get_index())
-        self.make_pair(offset(RSP, car_index.get_index()), offset(RSP, cdr_index.get_index()), stack)
+        self.make_pair(offset(RBP, car_index.get_index()), offset(RBP, cdr_index.get_index()), stack)
 
     def make_pair(self, car, cdr, stack):
         self.alloc_memory(stack, Compiler.WORDSIZE * 2)
@@ -339,7 +343,7 @@ class Compiler(object):
         variadic_args, args = self.get_closure_arguments(expr.parameters)
         body = expr.body
         closure_env, si = self.extend_env_for_closure(args, Environment(),
-                                                      Stack())
+                                                      Stack().get_next_stack())
         self.emitter.comment("Closure env" + str(closure_env))
         closure_label = self.label_generator.unique_label("closure")
         closure_end = self.label_generator.unique_label("closure_end")
@@ -357,10 +361,14 @@ class Compiler(object):
         self.emitter.function_header(closure_label)
         if variadic_args:
             self.transform_optional_arguments(closure_env, args, si)
+        self.emitter.push(RBP)
+        self.emitter.mov(RSP, RBP)
         self.emitter.comment("Allocating boxed values")
         self.allocate_boxed_parameters(args, closure_env, stack)
         self.emitter.comment("Compiling closure body: " + closure_label + " " + str(expr))
         self.compile_expr(body, closure_env, si, tail_position)
+        self.emitter.mov(RBP, RSP)
+        self.emitter.pop(RBP)
         self.emitter.ret()
         self.emitter.label(closure_end)
         self.load_from_stack(closure_stack_index.get_index())
@@ -414,10 +422,10 @@ class Compiler(object):
 
         # Loop body
         self.emitter.label(loop)
-        self.emitter.cmp(immediate_const(1), offset(R12, Compiler.WORDSIZE))
+        self.emitter.cmp(immediate_const(1), offset(RSP, Compiler.WORDSIZE))
         self.emitter.jump_equal(last_element)
         self.emitter.comment("Decrement the arg cnt")
-        self.emitter.sub(immediate_const(1), offset(R12, Compiler.WORDSIZE))
+        self.emitter.sub(immediate_const(1), offset(RSP, Compiler.WORDSIZE))
 
         self.emitter.comment("Save the current cons on stack")
         self.save_on_stack(stack.get_index())
@@ -494,7 +502,7 @@ class Compiler(object):
         for arg in closure_args:
             if arg == YarpenSymbol("."):
                 continue
-            extended_env = extended_env.extend(arg, stack.get_index())
+            extended_env = extended_env.extend(arg, -stack.get_index())
             stack = stack.get_next_stack()
         return extended_env, stack
 
@@ -518,7 +526,6 @@ class Compiler(object):
         self.load_from_stack(closure_si.get_index())
         self.emitter.mov(RAX, RBX)
         self.emitter.mov(offset(RAX, Compiler.WORDSIZE), RAX)
-        stack = stack.get_prev_stack()
         self.adjust_base(stack.get_index())
         self.emitter.call(dereference(RAX))
         self.adjust_base(- stack.get_index())
@@ -529,7 +536,7 @@ class Compiler(object):
         stack = stack.get_next_stack()
         args_size = len(expr.expressions) - 1
         self.emitter.comment("Saving number of arguments :%d" % args_size)
-        self.emitter.mov(immediate_const(args_size), offset(RSP, stack.get_index()))
+        self.emitter.mov(immediate_const(args_size), offset(RBP, stack.get_index()))
         if tail_position:
             self.emit_tail_call(expr, env, stack, closure_si)
         else:
@@ -552,10 +559,12 @@ class Compiler(object):
     def emit_call(self, expr, env, stack, closure_si):
         stack = stack.get_next_stack()
         self.emitter.comment("Emit args.")
-        self.emit_application_arguments(expr.expressions[1:],
-                                        env, stack)
+        stack = self.emit_application_arguments(expr.expressions[1:],
+                                                env, stack)
+        stack_before_function_call = stack
+        stack = stack.get_next_stack()
         closure_register_si = self.save_closure_register(stack)
-        self.emit_closure_app(closure_si, stack)
+        self.emit_closure_app(closure_si, stack_before_function_call)
         stack = stack.get_next_stack()
         self.save_on_stack(stack.get_index())
         self.load_from_stack(closure_register_si.get_index())
@@ -577,17 +586,19 @@ class Compiler(object):
             dst = dst.get_next_stack()
 
     def emit_application_arguments(self, args, env, stack):
-        for arg in args:
+        for arg in reversed(args):
             stack = stack.get_next_stack()
+            self.emitter.comment("Compiling argument " + str(arg))
             self.compile_expr(arg, env, stack, False)
+            self.emitter.comment("Saving argument " + str(arg))
             self.save_on_stack(stack.get_index())
         return stack
 
     def save_on_stack(self, stack_index):
-        self.emitter.mov(RAX, offset(RSP, stack_index))
+        self.emitter.mov(RAX, offset(RBP, stack_index))
 
     def load_from_stack(self, stack_index):
-        self.emitter.mov(offset(RSP, stack_index), RAX)
+        self.emitter.mov(offset(RBP, stack_index), RAX)
 
     def adjust_base(self, si):
         if si > 0:
