@@ -343,7 +343,7 @@ class Compiler(object):
         variadic_args, args = self.get_closure_arguments(expr.parameters)
         body = expr.body
         closure_env, si = self.extend_env_for_closure(args, Environment(),
-                                                      Stack().get_next_stack())
+                                                      Stack().get_next_stack().get_next_stack())
         self.emitter.comment("Closure env" + str(closure_env))
         closure_label = self.label_generator.unique_label("closure")
         closure_end = self.label_generator.unique_label("closure_end")
@@ -533,9 +533,6 @@ class Compiler(object):
         self.emitter.comment("Application: " + str(expr) + " is tail position: " + str(tail_position))
         closure_si = self.emit_closure(expr, env, stack, tail_position)
         stack = stack.get_next_stack()
-        args_size = len(expr.expressions) - 1
-        self.emitter.comment("Saving number of arguments :%d" % args_size)
-        self.emitter.mov(immediate_const(args_size), offset(RBP, stack.get_index()))
         if tail_position:
             self.emit_tail_call(expr, env, stack, closure_si)
         else:
@@ -545,6 +542,10 @@ class Compiler(object):
         self.emitter.comment("Emit args: %s" % str(expr.expressions[1:]))
         stack = self.emit_application_arguments(expr.expressions[1:],
                                                 env, stack)
+        args_size = len(expr.expressions) - 1
+        self.emitter.comment("Saving number of arguments :%d" % args_size)
+        self.emitter.mov(immediate_const(args_size), offset(RBP, stack.get_index()))
+        stack = stack.get_next_stack()
         # let's load the closure from stack to rbx, otherwise it
         # would be overwritten. we don't need to preserve old rbx,
         # as this is tail call.
@@ -560,6 +561,10 @@ class Compiler(object):
         self.emitter.comment("Emit args.")
         stack = self.emit_application_arguments(expr.expressions[1:],
                                                 env, stack)
+        stack = stack.get_next_stack()
+        args_size = len(expr.expressions) - 1
+        self.emitter.comment("Saving number of arguments :%d" % args_size)
+        self.emitter.mov(immediate_const(args_size), offset(RBP, stack.get_index()))
         stack_before_function_call = stack
         stack = stack.get_next_stack()
         closure_register_si = self.save_closure_register(stack)
