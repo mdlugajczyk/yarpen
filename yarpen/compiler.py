@@ -71,10 +71,21 @@ class Compiler(object):
         (4) RDI passing arguments to C functions
         (5) RSP for stack manipulation
         """
-        exprs = self._get_transformed_source()
         self.emitter.entry_point_preamble("pyscm_start")
         self.emitter.push(RBP)
         self.emitter.mov(RSP, RBP)
+
+        self.emitter.comment("The implicit parameter with number of arguments")
+        self.emitter.push(immediate_const(0))
+        self.emitter.call("__real_pyscm_start")
+
+        self.emitter.leave()
+        self.emitter.ret()
+
+        self.emitter.function_header("__real_pyscm_start")
+        self.emitter.push(RBP)
+        self.emitter.mov(RSP, RBP)
+        exprs = self._get_transformed_source()
         self.compile_exprs(exprs, Environment(),
                            Stack(), Compiler.ENABLE_TCO)
         self.emitter.leave()
