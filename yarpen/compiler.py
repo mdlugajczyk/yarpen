@@ -7,7 +7,7 @@ from .expression import YarpenFreeVarRef, YarpenSymbol, assignment_value, \
     is_free_var_reference, is_if, is_number, is_tagged_list, is_variable, is_quoted, \
     is_character
 from .parser import Parser
-from .registers import AL, RAX, RBX, RDX, RDI, RSP, R12, RBP, \
+from .registers import AL, RAX, RBX, RCX, RDX, RDI, RSP, R12, RBP, \
 dereference, immediate_const, offset, offset_register
 
 from yarpen.expression import is_boxed_value
@@ -15,7 +15,7 @@ from yarpen.stack import Stack
 
 
 class Compiler(object):
-    ENABLE_TCO = False
+    ENABLE_TCO = True
     BOOL_BIT = 6
     INT_MASK = 0x03
     INT_TAG = 0x00
@@ -553,6 +553,7 @@ class Compiler(object):
         self.emitter.comment("Emit args: %s" % str(expr.expressions[1:]))
         stack = self.emit_application_arguments(expr.expressions[1:],
                                                 env, stack)
+        stack = stack.get_next_stack()
         args_size = len(expr.expressions) - 1
         self.emitter.comment("Saving number of arguments :%d" % args_size)
         self.emitter.mov(immediate_const(args_size), offset(RBP, stack.get_index()))
@@ -587,18 +588,37 @@ class Compiler(object):
         self.load_from_stack(stack.get_index())
 
     def shift_arguments_for_tail_call(self, stack, arguments):
-        delta = -stack.get_prev_stack().get_index()
-        src = Stack(stack.get_index() + ((len(arguments) - 1) * Compiler.WORDSIZE))
-        dst = Stack(stack.get_index()+delta)
-        self.emitter.comment("Shifting the number of arguments")
-        self.load_from_stack(src.get_index() + Compiler.WORDSIZE)
-        self.save_on_stack(Compiler.WORDSIZE)
-        self.emitter.comment("Shift arguments")
-        for arg in arguments:
+        self.emitter.comment("Save old RBP")
+        self.emitter.mov(offset(RBP, 0), R12)
+        self.emitter.comment("Save return address")
+        self.emitter.mov(offset(RBP, Compiler.WORDSIZE), RDI)
+
+        src = Stack(stack.get_index() + ((len(arguments) + 1)* Compiler.WORDSIZE))
+
+        self.emitter.comment("Load number of arguments in current frame")
+        self.emitter.mov(offset(RBP, 2*Compiler.WORDSIZE), RCX)
+        self.emitter.comment("To find offset to the first arg, account for return address and saved RBP")
+        self.emitter.add(immediate_const(2), RCX)
+
+        self.emitter.comment("Shift arguments and args count")
+        for arg in range(len(arguments) + 1):
+            self.emitter.comment("Shifting argument")
             self.load_from_stack(src.get_index())
-            self.save_on_stack(dst.get_index())
+            self.emitter.mov(RAX, offset_register(RBP, 0, RCX,
+                                                  Compiler.WORDSIZE))
+            self.emitter.sub(immediate_const(1), RCX)
             src = src.get_next_stack()
-            dst = dst.get_next_stack()
+
+        self.emitter.comment("Saving return address")
+        self.emitter.mov(RDI, offset_register(RBP, 0, RCX,
+                                              Compiler.WORDSIZE))
+
+        self.emitter.comment("Reset RSP")
+        self.emitter.lea(offset_register(RBP, 0, RCX,
+                                         Compiler.WORDSIZE), RSP)
+
+        self.emitter.comment("Restore od RBP")
+        self.emitter.mov(R12, RBP)
 
     def emit_application_arguments(self, args, env, stack):
         for arg in reversed(args):
