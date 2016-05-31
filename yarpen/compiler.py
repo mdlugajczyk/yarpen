@@ -413,7 +413,7 @@ class Compiler(object):
         self.emitter.label(non_nil_label)
         self.emitter.sub(immediate_const(len(args) - 1), offset(RBP, 2*Compiler.WORDSIZE))
         self.create_list_from_optional_arguments(Stack(closure_env.get_var(args[-1])), si)
-        self.emitter.mov(RAX, offset(RSP, closure_env.get_var(args[-1])))
+        self.emitter.mov(RAX, offset(RBP, closure_env.get_var(args[-1])))
         self.emitter.label(done_with_variadic_arguments)
 
     def create_list_from_optional_arguments(self, first_optional_arg, si):
