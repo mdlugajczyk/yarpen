@@ -400,7 +400,7 @@ class Compiler(object):
         """ Build a list of optional arguments.
         """
         self.emitter.comment("Handling variadic number of arguments in env %s" % closure_env)
-        self.emitter.cmp(immediate_const(len(args) - 1), offset(RSP, Compiler.WORDSIZE))
+        self.emitter.cmp(immediate_const(len(args) - 1), offset(RBP, 2*Compiler.WORDSIZE))
         nil_label = self.label_generator.unique_label("nil_label")
         non_nil_label = self.label_generator.unique_label("non_nil_label")
         done_with_variadic_arguments = self.label_generator.unique_label("done_with_variadic_arguments")
@@ -408,10 +408,10 @@ class Compiler(object):
         self.emitter.jmp(non_nil_label)
         self.emitter.label(nil_label)
         self.emitter.mov(immediate_const(Compiler.NIL_TAG),
-                         offset(RSP, closure_env.get_var(args[-1])))
+                         offset(RBP, closure_env.get_var(args[-1])))
         self.emitter.jmp(done_with_variadic_arguments)
         self.emitter.label(non_nil_label)
-        self.emitter.sub(immediate_const(len(args) - 1), offset(RSP, Compiler.WORDSIZE))
+        self.emitter.sub(immediate_const(len(args) - 1), offset(RBP, 2*Compiler.WORDSIZE))
         self.create_list_from_optional_arguments(Stack(closure_env.get_var(args[-1])), si)
         self.emitter.mov(RAX, offset(RSP, closure_env.get_var(args[-1])))
         self.emitter.label(done_with_variadic_arguments)
