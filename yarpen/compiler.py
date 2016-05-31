@@ -383,10 +383,10 @@ class Compiler(object):
         closure_env = self.emit_closure_free_variables(expr.free_variables, env, closure_env, stack)
         self.emitter.jmp(closure_end)
         self.emitter.function_header(closure_label)
-        if variadic_args:
-            self.transform_optional_arguments(closure_env, args, si)
         self.emitter.push(RBP)
         self.emitter.mov(RSP, RBP)
+        if variadic_args:
+            self.transform_optional_arguments(closure_env, args, si)
         self.emitter.comment("Allocating boxed values")
         self.allocate_boxed_parameters(args, closure_env, stack)
         self.emitter.comment("Compiling closure body: " + closure_label + " " + str(expr))
