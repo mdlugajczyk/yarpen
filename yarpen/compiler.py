@@ -349,12 +349,26 @@ class Compiler(object):
         self.emitter.mov(RDI, offset(RAX, Compiler.WORDSIZE))
         self.emitter.or_inst(immediate_const(Compiler.CLOSURE_TAG), RAX)
 
+    def _make_list_of_optional_args_local_var(self, variadic_function,
+                                              arguments, environment,
+                                              current_stack):
+        """ As the optional arg can be nil, we wouldn't have a space on
+        the stack allocated for it in that cas. Therefore, let's move it to
+        the are of local variables, where we can guarantee we have space.
+        """
+        if not variadic_function:
+            return current_stack
+        environment.set_var(arguments[-1], current_stack.get_index())
+        return current_stack.get_next_stack()
+
     def compile_closure(self, expr, env, stack, tail_position):
         self.emitter.comment("Compiling closure: " + str(expr) + " in env " + str(env))
         variadic_args, args = self.get_closure_arguments(expr.parameters)
         body = expr.body
         closure_env, si = self.extend_env_for_closure(args, Environment(),
                                                       Stack().get_next_stack().get_next_stack())
+        si = self._make_list_of_optional_args_local_var(variadic_args, args,
+                                                        closure_env, si)
         self.emitter.comment("Closure env" + str(closure_env))
         closure_label = self.label_generator.unique_label("closure")
         closure_end = self.label_generator.unique_label("closure_end")

@@ -266,16 +266,20 @@ add_group('characters', [('#\\a', '#\\a'),
                          ("(char? #\\space)", "#t"),
                          ("(char? #\\newline)", "#t")])
 
-# add_group('dot in func arguments',
-#            [("(let ((f (lambda (x . y) y))) (f 100))", "()"),
-#             ("(let ((f (lambda (x y . z) z))) (f 100 200))", "()"),
-#             ("(let ((f (lambda (x y z . a) a))) (f 100 200 300))", "()"),
-#             ("(let ((f (lambda (x y z . a) a))) (f 100 200 300))", "()"),
-#             ("(let ((f (lambda (x . y) y))) (f 100 200))", "(200)"),
-#             ("(let ((f (lambda (x . y) y))) (f 100 200 300 400))", "(200 300 400)"),
-#             ("(let ((f (lambda (x y z . a) a))) (f 100 200 300))", "()"),
-#             ("(let ((f (lambda (x y z . a) a))) (f 100 200 300 400))", "(400)"),
-#             ("(let ((f (lambda (x . y) y))) (f 100 200 300))", "(200 300)"),
-#             ("(let ((f (lambda (. x) x))) (f 100 200 300))", "(100 200 300)")])
+add_group('dot in func arguments',
+           [("((lambda (x . y) y) 100)", "()"),
+            ("(let ((f (lambda (x . y) y))) (f 100))", "()"),
+            ("((lambda (x . y) (let ((z 2)) (cons z y))) 100)", "(2)"),
+            ("((lambda (x . y) (let ((a 2) (b 3) (c 4)) (cons a (cons b (cons c y))))) 100)", "(2 3 4)"),
+            # ("(let ((f (lambda (x y . z) z))) (f 100 200))", "()"),
+            # ("(let ((f (lambda (x y z . a) a))) (f 100 200 300))", "()"),
+            # ("(let ((f (lambda (x y z . a) a))) (f 100 200 300))", "()"),
+            # ("(let ((f (lambda (x . y) y))) (f 100 200))", "(200)"),
+            # ("(let ((f (lambda (x . y) y))) (f 100 200 300 400))", "(200 300 400)"),
+            # ("(let ((f (lambda (x y z . a) a))) (f 100 200 300))", "()"),
+            # ("(let ((f (lambda (x y z . a) a))) (f 100 200 300 400))", "(400)"),
+            # ("(let ((f (lambda (x . y) y))) (f 100 200 300))", "(200 300)"),
+            # ("(let ((f (lambda (. x) x))) (f 100 200 300))", "(100 200 300)")
+           ])
 
 run_tests()
