@@ -400,7 +400,7 @@ class Compiler(object):
         """ Build a list of optional arguments.
         """
         self.emitter.comment("Handling variadic number of arguments in env %s" % closure_env)
-        self.emitter.cmp(immediate_const(len(args) - 1), offset(RBP, 2*Compiler.WORDSIZE))
+        self.emitter.cmp(immediate_const(len(args) - 1), self._arg_count_location())
         nil_label = self.label_generator.unique_label("nil_label")
         non_nil_label = self.label_generator.unique_label("non_nil_label")
         done_with_variadic_arguments = self.label_generator.unique_label("done_with_variadic_arguments")
@@ -411,7 +411,7 @@ class Compiler(object):
                          offset(RBP, closure_env.get_var(args[-1])))
         self.emitter.jmp(done_with_variadic_arguments)
         self.emitter.label(non_nil_label)
-        self.emitter.sub(immediate_const(len(args) - 1), offset(RBP, 2*Compiler.WORDSIZE))
+        self.emitter.sub(immediate_const(len(args) - 1), self._arg_count_location())
         self.create_list_from_optional_arguments(Stack(closure_env.get_var(args[-1])), si)
         self.emitter.mov(RAX, offset(RBP, closure_env.get_var(args[-1])))
         self.emitter.label(done_with_variadic_arguments)
@@ -613,7 +613,7 @@ class Compiler(object):
         src = Stack(stack.get_index() + ((len(arguments) + 1)* Compiler.WORDSIZE))
 
         self.emitter.comment("Load number of arguments in current frame")
-        self.emitter.mov(offset(RBP, 2*Compiler.WORDSIZE), RCX)
+        self.emitter.mov(self._arg_count_location(), RCX)
         self.emitter.comment("To find offset to the first arg, account for return address and saved RBP")
         self.emitter.add(immediate_const(2), RCX)
 
@@ -660,6 +660,9 @@ class Compiler(object):
 
     def _get_transformed_source(self):
         return [self._code_transformer.transform(e) for e in self.parser.parse()]
+
+    def _arg_count_location(self):
+        return offset(RBP, 2*Compiler.WORDSIZE)
 
 
 class LabelGenerator:
