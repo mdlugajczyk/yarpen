@@ -365,10 +365,9 @@ class Compiler(object):
         self.emitter.comment("Compiling closure: " + str(expr) + " in env " + str(env))
         variadic_args, args = self.get_closure_arguments(expr.parameters)
         body = expr.body
-        closure_env, si = self.extend_env_for_closure(args, Environment(),
-                                                      Stack().get_next_stack().get_next_stack())
+        closure_env = self.extend_env_for_closure(args, Environment())
         si = self._make_list_of_optional_args_local_var(variadic_args, args,
-                                                        closure_env, si)
+                                                        closure_env, Stack())
         self.emitter.comment("Closure env" + str(closure_env))
         closure_label = self.label_generator.unique_label("closure")
         closure_end = self.label_generator.unique_label("closure_end")
@@ -521,14 +520,18 @@ class Compiler(object):
             self.emitter.mov(RDX, RAX)
             self.save_on_stack(arg_index)
 
-    def extend_env_for_closure(self, closure_args, env, stack):
+    def extend_env_for_closure(self, closure_args, env):
         extended_env = env
+        # First position past RBP is return address, one before that the
+        # number of arguments to the function. The next position contains
+        # the first argument.
+        stack = Stack().get_next_stack().get_next_stack()
         for arg in closure_args:
             if arg == YarpenSymbol("."):
                 continue
             extended_env = extended_env.extend(arg, -stack.get_index())
             stack = stack.get_next_stack()
-        return extended_env, stack
+        return extended_env
 
     def emit_closure(self, expr, env, stack, tail_position):
         self.compile_expr(expr.expressions[0], env, stack, False)
