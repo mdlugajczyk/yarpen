@@ -353,8 +353,8 @@ class Compiler(object):
                                               arguments, environment,
                                               current_stack):
         """ As the optional arg can be nil, we wouldn't have a space on
-        the stack allocated for it in that cas. Therefore, let's move it to
-        the are of local variables, where we can guarantee we have space.
+        the stack allocated for it in that case. Therefore, let's move it to
+        the area of local variables, where we can guarantee we have space.
         """
         if not variadic_function:
             return current_stack
