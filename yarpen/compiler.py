@@ -64,12 +64,7 @@ class Compiler(object):
         to compile code. Next stage involves generation of (highly
         unoptimized) x64 assembly.
 
-        Currently, only 5 registers are being used:
-        (1) RAX holds the current result
-        (2) RBX holds the current closure.
-        (3) RDX is used for storing temporary results
-        (4) RDI passing arguments to C functions
-        (5) RSP for stack manipulation
+        The RBX register is used to store the current closure.
         """
         self.emitter.entry_point_preamble("pyscm_start")
         self.emitter.push(RBP)
