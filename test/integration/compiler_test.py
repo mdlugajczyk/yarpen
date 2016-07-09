@@ -25,11 +25,15 @@ def run_tests():
         if compilation_status != 0:
             print("Failed to compile test.")
             break
-
-        output = check_output("./yarpen_code.s.out").decode('ascii')
-        if output != test[2]:
-            print(("Test failed. Expected %s got %s\nCode: %s"
-                  % (test[2], output, test[1])))
+        try:
+            output = check_output("./yarpen_code.s.out").decode('ascii')
+            if output != test[2]:
+                print(("Test failed. Expected %s got %s\nCode: %s"
+                       % (test[2], output, test[1])))
+                break
+        except Exception as e:
+            print(("Test failed to execute properly. Expected %s got %s\nCode: %s"
+                   % (test[2], str(e), test[1])))
             break
 
 add_group("Integers", [("1", "1"),
