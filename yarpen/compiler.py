@@ -349,25 +349,13 @@ class Compiler(object):
         self.emitter.mov(RDI, offset(RAX, Compiler.WORDSIZE))
         self.emitter.or_inst(immediate_const(Compiler.CLOSURE_TAG), RAX)
 
-    def _make_list_of_optional_args_local_var(self, variadic_function,
-                                              arguments, environment,
-                                              current_stack):
-        """ As the optional arg can be nil, we wouldn't have a space on
-        the stack allocated for it in that case. Therefore, let's move it to
-        the area of local variables, where we can guarantee we have space.
-        """
-        if not variadic_function:
-            return current_stack
-        environment.set_var(arguments[-1], current_stack.get_index())
-        return current_stack.get_next_stack()
-
     def compile_closure(self, expr, env, stack, tail_position):
-        self.emitter.comment("Compiling closure: " + str(expr) + " in env " + str(env))
+        self.emitter.comment("Compiling closure: " + str(expr) + " in env "
+                             + str(env))
         variadic_args, args = self.get_closure_arguments(expr.parameters)
         body = expr.body
         closure_env = self.extend_env_for_closure(args, Environment())
-        si = self._make_list_of_optional_args_local_var(variadic_args, args,
-                                                        closure_env, Stack())
+        si = Stack()
         self.emitter.comment("Closure env" + str(closure_env))
         closure_label = self.label_generator.unique_label("closure")
         closure_end = self.label_generator.unique_label("closure_end")
@@ -386,7 +374,14 @@ class Compiler(object):
         self.emitter.push(RBP)
         self.emitter.mov(RSP, RBP)
         if variadic_args:
-            self.transform_optional_arguments(closure_env, args, si)
+            optional_args_location = si
+            si = si.get_next_stack()
+            self.transform_optional_arguments(closure_env, args,
+                                              optional_args_location, si)
+            # As the optional arg can be nil, we wouldn't have a space on
+            # the stack allocated for it in that case. Therefore, let's move it to
+            # the area of local variables, where we can guarantee we have space.
+            closure_env.set_var(args[-1], optional_args_location.get_index())
         self.emitter.comment("Allocating boxed values")
         self.allocate_boxed_parameters(args, closure_env, stack)
         self.emitter.comment("Compiling closure body: " + closure_label + " " + str(expr))
@@ -396,7 +391,8 @@ class Compiler(object):
         self.emitter.label(closure_end)
         self.load_from_stack(closure_stack_index.get_index())
 
-    def transform_optional_arguments(self, closure_env, args, si):
+    def transform_optional_arguments(self, closure_env, args, result_location,
+                                     si):
         """ Build a list of optional arguments.
         """
         self.emitter.comment("Handling variadic number of arguments in env %s" % closure_env)
@@ -408,66 +404,22 @@ class Compiler(object):
         self.emitter.jmp(non_nil_label)
         self.emitter.label(nil_label)
         self.emitter.mov(immediate_const(Compiler.NIL_TAG),
-                         offset(RBP, closure_env.get_var(args[-1])))
+                         offset(RBP, result_location.get_index()))
         self.emitter.jmp(done_with_variadic_arguments)
         self.emitter.label(non_nil_label)
         self.emitter.sub(immediate_const(len(args) - 1), self._arg_count_location())
         self.create_list_from_optional_arguments(Stack(closure_env.get_var(args[-1])), si)
-        self.emitter.mov(RAX, offset(RBP, closure_env.get_var(args[-1])))
+        self.emitter.mov(RAX, offset(RBP, result_location.get_index()))
         self.emitter.label(done_with_variadic_arguments)
 
     def create_list_from_optional_arguments(self, first_optional_arg, si):
-        self.emitter.comment("Saving RSP")
-        # FIXME: Should be using RBP.
-        # Has to wait until we start following X64 calling convention
-        self.emitter.mov(RSP, R12)
-        self.emitter.comment("Adjusting RSP")
-        self.emitter.sub(immediate_const(-first_optional_arg.get_index()), RSP)
-        self.emitter.sub(immediate_const(-si.get_index() + Compiler.WORDSIZE), RSP)
-        stack = Stack()
-        nil_on_stack = stack
-        stack = stack.get_next_stack()
         self.emitter.comment("Storing nil on stack")
-        self.emitter.mov(immediate_const(Compiler.NIL_TAG), offset(RSP, nil_on_stack.get_index()))
+        self.emitter.mov(immediate_const(Compiler.NIL_TAG), offset(RBP, si.get_index()))
+        nil_on_stack = si
+        si = si.get_next_stack()
         self.emitter.comment("Making first painr")
-        self.make_pair(offset(R12, first_optional_arg.get_index()), offset(RSP, nil_on_stack.get_index()), stack)
-        self.emitter.comment("Saving on stack - the result")
-        self.save_on_stack(stack.get_index())
-        result_si = stack
-        stack = stack.get_next_stack()
-        self.emitter.comment("Save arg offset on stack, init with 0")
-        self.emitter.mov(immediate_const(0), offset(RSP, stack.get_index()))
-        args_offset = stack
-        stack = stack.get_next_stack()
+        self.make_pair(offset(RBP, first_optional_arg.get_index()), offset(RBP, nil_on_stack.get_index()), si)
         
-        loop = self.label_generator.unique_label("make_list_loop")
-        last_element = self.label_generator.unique_label("make_list_last_element")
-
-        # Loop body
-        self.emitter.label(loop)
-        self.emitter.cmp(immediate_const(1), offset(RSP, Compiler.WORDSIZE))
-        self.emitter.jump_equal(last_element)
-        self.emitter.comment("Decrement the arg cnt")
-        self.emitter.sub(immediate_const(1), offset(RSP, Compiler.WORDSIZE))
-
-        self.emitter.comment("Save the current cons on stack")
-        self.save_on_stack(stack.get_index())
-        
-        self.load_next_optional_argument(argument_offset=args_offset, stack_register=R12,
-                                         first_optional_arg=first_optional_arg, result_register=RDX)
-        self.wrap_optional_argument_into_pair(RDX, stack.get_next_stack(), nil_on_stack, RDX)
-        self.emitter.comment("Load previous cons")
-        self.load_from_stack(stack.get_index())
-        self.set_cdr(RAX, RDX)
-        self.emitter.mov(RDX, RAX)
-        
-        self.emitter.jmp(loop)
-
-        # Move nil to cdr of the last pair, we're done
-        self.emitter.label(last_element)
-        self.load_from_stack(result_si.get_index())
-        self.emitter.mov(R12, RSP)
-
     def load_next_optional_argument(self, argument_offset=0, stack_register=RSP, first_optional_arg=0, result_register=RDX):
         self.emitter.comment("Load arg offset")
         self.load_from_stack(argument_offset.get_index())
