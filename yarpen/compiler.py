@@ -415,24 +415,39 @@ class Compiler(object):
     def create_list_from_optional_arguments(self, first_optional_arg, si):
         self.emitter.comment("Storing nil on stack")
         self.emitter.mov(immediate_const(Compiler.NIL_TAG), offset(RBP, si.get_index()))
-        nil_on_stack = si
+        result = si
         si = si.get_next_stack()
-        self.emitter.comment("Making first painr")
-        self.make_pair(offset(RBP, first_optional_arg.get_index()), offset(RBP, nil_on_stack.get_index()), si)
-        
-    def load_next_optional_argument(self, argument_offset=0, stack_register=RSP, first_optional_arg=0, result_register=RDX):
-        self.emitter.comment("Load arg offset")
-        self.load_from_stack(argument_offset.get_index())
-        self.emitter.sub(immediate_const(1), RAX)
-        self.save_on_stack(argument_offset.get_index())
-        self.emitter.comment("Load next arg")
-        self.emitter.mov(offset_register(stack_register, first_optional_arg.get_index(), RAX, Compiler.WORDSIZE), result_register)
+        self.emitter.comment("Initializing args offset")
+        loop_label = self.label_generator.unique_label("optional_args_loop")
+        done_label = self.label_generator.unique_label("optional_args_list_empty")
 
-    def wrap_optional_argument_into_pair(self, arg_register, si, nil_stack_location, result_reg=RAX):
-        self.emitter.mov(arg_register, offset(RSP, si.get_index()))
+        self.emitter.label(loop_label)
+        self.emitter.cmp(immediate_const(0), self._arg_count_location())
+        self.emitter.jump_equal(done_label)
+        self.emitter.sub(immediate_const(1), self._arg_count_location())
+        self.emitter.comment("Loading next argument")
+        self.load_next_optional_argument(first_optional_arg)
+        self.emitter.comment("Wrap optional arg into pari")
+        self.wrap_optional_argument_into_pair(RAX, result, si)
+        self.emitter.comment("Saving result")
+        self.emitter.mov(RAX, offset(RBP, result.get_index()))
+        self.emitter.jmp(loop_label)
+
+        self.emitter.label(done_label)
+        self.emitter.mov(offset(RBP, result.get_index()), RAX)
+
+    def load_next_optional_argument(self, first_optional_arg):
+        self.emitter.comment("Load arg offset")
+        self.emitter.mov(self._arg_count_location(), RAX)
+        self.emitter.comment("Load next arg")
+        self.emitter.mov(offset_register(RBP,first_optional_arg.get_index(),
+                                         RAX, Compiler.WORDSIZE),
+                         RAX)
+
+    def wrap_optional_argument_into_pair(self, car_location, cdr_location, si):
+        self.emitter.mov(car_location, offset(RSP, si.get_index()))
         self.emitter.comment("Make next cons cell")
-        self.make_pair(offset(RSP, si.get_index()), offset(RSP, nil_stack_location.get_index()), si.get_next_stack())
-        self.emitter.mov(RAX, result_reg)
+        self.make_pair(offset(RBP, si.get_index()), offset(RBP, cdr_location.get_index()), si.get_next_stack())
 
     def get_closure_arguments(self, args):
         dot = YarpenSymbol(".")
