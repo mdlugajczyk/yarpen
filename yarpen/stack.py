@@ -6,12 +6,12 @@ class Stack(object):
     def get_index(self):
         return self._index;
 
-    def push(self):
+    def grow(self):
         s = Stack(self._index)
         self._index -= Stack.WORDSIZE
         return s
 
-    def pop(self):
+    def shrink(self):
         s = Stack(self._index)
         self._index += Stack.WORDSIZE
         return s
