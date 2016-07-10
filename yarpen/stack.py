@@ -11,3 +11,8 @@ class Stack(object):
 
     def get_prev_stack(self):
         return Stack(self._index + Stack.WORDSIZE)
+
+    def push(self):
+        s = Stack(self._index)
+        self._index -= Stack.WORDSIZE
+        return s

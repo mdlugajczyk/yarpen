@@ -20,3 +20,13 @@ class StackTest(TestCase):
         s2 = s2.get_next_stack()
         self.assertEqual(s2.get_index(), -24)
         self.assertEqual(s.get_index(), -8)
+
+    def push_decrements_index_test(self):
+        s = Stack()
+        s.push()
+        self.assertEqual(s.get_index(), -16)
+
+    def push_returns_stack_with_unmodified_index_test(self):
+        s = Stack()
+        previous = s.push()
+        self.assertEqual(previous.get_index(), -8)
