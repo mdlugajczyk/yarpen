@@ -89,8 +89,8 @@ class Compiler(object):
 
     def compile_exprs(self, exprs, env, stack, tail_position):
         for expr in exprs[:-1]:
-            self.compile_expr(expr, env, stack, False)
-        self.compile_expr(exprs[-1], env, stack, tail_position)
+            self.compile_expr(expr, env, stack.copy(), False)
+        self.compile_expr(exprs[-1], env, stack.copy(), tail_position)
 
     def compile_expr(self, expr, env, stack, tail_position):
         if is_number(expr):
@@ -104,17 +104,17 @@ class Compiler(object):
         elif is_variable(expr) or is_free_var_reference(expr) or is_boxed_value(expr):
             self.compile_variable_reference(expr, env, stack)
         elif is_if(expr):
-            self.compile_if(expr, env, stack, tail_position)
+            self.compile_if(expr, env, stack.copy(), tail_position)
         elif self.is_primitive_function(expr):
             self.compile_primitive_function(expr, env, stack)
         elif is_closure(expr):
-            self.compile_closure(expr, env, stack, Compiler.ENABLE_TCO)
+            self.compile_closure(expr, env, stack.copy(), Compiler.ENABLE_TCO)
         elif is_begin(expr):
-            self.compile_begin(expr, env, stack, tail_position)
+            self.compile_begin(expr, env, stack.copy(), tail_position)
         elif is_assignment(expr):
-            self.compile_assignment(expr, env, stack)
+            self.compile_assignment(expr, env, stack.copy())
         elif is_application(expr):
-            return self.compile_application(expr, env, stack, tail_position)
+            return self.compile_application(expr, env, stack.copy(), tail_position)
         else:
             raise Exception("Unknow expression %s %s", expr, type(expr))
 
@@ -165,27 +165,30 @@ class Compiler(object):
         assert(len(expr.expressions) == 3)
         self.compile_expr(expr.expressions[1], env, stack, None)
         self.save_on_stack(stack)
+        partial_result = stack.push()
         self.compile_expr(expr.expressions[2], env,
-                          stack.get_next_stack(), None)
-        self.emitter.add(offset(RBP, stack.get_index()), RAX)
+                          stack.copy(), None)
+        self.emitter.add(offset(RBP, partial_result.get_index()), RAX)
 
     def compile_prim_sub(self, expr, env, stack):
         assert(len(expr.expressions) == 3)
         self.compile_expr(expr.expressions[1], env, stack, None)
         self.save_on_stack(stack)
+        partial_result = stack.push()
         self.compile_expr(expr.expressions[2], env,
-                          stack.get_next_stack(), None)
-        self.emitter.sub(RAX, offset(RBP, stack.get_index()))
-        self.load_from_stack(stack.get_index())
+                          stack.copy(), None)
+        self.emitter.sub(RAX, offset(RBP, partial_result.get_index()))
+        self.load_from_stack(partial_result.get_index())
 
     def compile_prim_mul(self, expr, env, stack):
         assert(len(expr.expressions) == 3)
         self.compile_expr(expr.expressions[1], env, stack, None)
         self.save_on_stack(stack)
+        partial_result = stack.push()
         self.compile_expr(expr.expressions[2], env,
-                          stack.get_next_stack(), None)
+                          stack.copy(), None)
         self.emitter.shr(immediate_const(Compiler.INT_SHIFT), RAX)
-        self.emitter.mul(offset(RBP, stack.get_index()))
+        self.emitter.mul(offset(RBP, partial_result.get_index()))
 
     def compile_prim_zero_p(self, expr, env, stack):
         self.compare_type_tag(expr, env, stack, self.int_repr(0))
@@ -196,18 +199,16 @@ class Compiler(object):
 
     def compile_prim_cons(self, expr, env, stack):
         assert(len(expr.expressions) == 3)
-        self.compile_expr(expr.expressions[1], env, stack, None)
+        self.compile_expr(expr.expressions[1], env, stack.copy(), None)
         self.save_on_stack(stack)
-        car_index = stack
-        stack = stack.get_next_stack()
-        self.compile_expr(expr.expressions[2], env, stack, None)
-        cdr_index = stack
-        stack = stack.get_next_stack()
+        car_index = stack.push()
+        self.compile_expr(expr.expressions[2], env, stack.copy(), None)
+        cdr_index = stack.push()
         self.save_on_stack(cdr_index)
-        self.make_pair(offset(RBP, car_index.get_index()), offset(RBP, cdr_index.get_index()), stack)
+        self.make_pair(offset(RBP, car_index.get_index()), offset(RBP, cdr_index.get_index()), stack.copy())
 
     def make_pair(self, car, cdr, stack):
-        self.alloc_memory(stack, Compiler.WORDSIZE * 2)
+        self.alloc_memory(stack.copy(), Compiler.WORDSIZE * 2)
         self.emitter.mov(RAX, RDX)
         self.emitter.mov(car, RAX)
         self.emitter.mov(RAX, offset(RDX, 0))
@@ -218,37 +219,37 @@ class Compiler(object):
 
     def compile_prim_car(self, expr, env, stack):
         assert(len(expr.expressions) == 2)
-        self.compile_expr(expr.expressions[1], env, stack, None)
+        self.compile_expr(expr.expressions[1], env, stack.copy(), None)
         self.emitter.mov(offset(RAX, -1), RAX)
 
     def compile_prim_cdr(self, expr, env, stack):
         assert(len(expr.expressions) == 2)
-        self.compile_expr(expr.expressions[1], env, stack, None)
+        self.compile_expr(expr.expressions[1], env, stack.copy(), None)
         self.emitter.mov(offset(RAX, Compiler.WORDSIZE - 1), RAX)
 
     def compile_prim_set_car(self, expr, env, stack):
         assert(len(expr.expressions) == 3)
-        self.compile_expr(expr.expressions[2], env, stack, None)
+        self.compile_expr(expr.expressions[2], env, stack.copy(), None)
         self.emitter.mov(RAX, RDX)
-        self.compile_expr(expr.expressions[1], env, stack, None)
+        self.compile_expr(expr.expressions[1], env, stack.copy(), None)
         self.emitter.mov(RDX, offset(RAX, -1))
 
     def compile_prim_set_cdr(self, expr, env, stack):
         assert(len(expr.expressions) == 3)
-        self.compile_expr(expr.expressions[2], env, stack, None)
+        self.compile_expr(expr.expressions[2], env, stack.copy(), None)
         self.emitter.mov(RAX, RDX)
-        self.compile_expr(expr.expressions[1], env, stack, None)
+        self.compile_expr(expr.expressions[1], env, stack.copy(), None)
         self.set_cdr(RAX, RDX)
 
     def set_cdr(self, pair_reg, new_cdr_reg):
         self.emitter.mov(new_cdr_reg, offset(pair_reg, 7))
 
     def compile_prim_nil_p(self, expr, env, stack):
-        self.compare_type_tag(expr, env, stack, Compiler.NIL_TAG,
+        self.compare_type_tag(expr, env, stack.copy(), Compiler.NIL_TAG,
                               Compiler.NIL_MASK)
 
     def compile_prim_cons_p(self, expr, env, stack):
-        self.compare_type_tag(expr, env, stack, Compiler.CONS_TAG,
+        self.compare_type_tag(expr, env, stack.copy(), Compiler.CONS_TAG,
                               Compiler.OBJECT_MASK)
 
     def compare_type_tag(self, expr, env, stack, tag, mask=None):
@@ -286,14 +287,14 @@ class Compiler(object):
     def compile_if(self, expr, env, stack, tail_position):
         cond_false_label = self.label_generator.unique_label("false_branch")
         if_end_label = self.label_generator.unique_label("if_end")
-        self.compile_expr(if_condition(expr), env, stack, False)        
+        self.compile_expr(if_condition(expr), env, stack.copy(), False)
         self.compare_with_constant(Compiler.BOOL_FALSE)
         self.emitter.jump_equal(cond_false_label)
-        self.compile_expr(if_conseq(expr), env, stack, tail_position)
+        self.compile_expr(if_conseq(expr), env, stack.copy(), tail_position)
         self.emitter.jmp(if_end_label)
         self.emitter.label(cond_false_label)
         self.compile_expr(if_alternative(expr), env,
-                          stack, tail_position)
+                          stack.copy(), tail_position)
         self.emitter.label(if_end_label)
 
     def compile_begin(self, expr, env, stack, tail_position):
@@ -303,7 +304,7 @@ class Compiler(object):
     def compile_assignment(self, expr, env, stack):
         variable_index = env.get_var(assignment_variable(expr))
         self.emitter.comment('Assignment to variable: {0} at index: {1} in env: {2}'.format(str(expr), variable_index, env))
-        self.compile_expr(assignment_value(expr), env, stack, None)
+        self.compile_expr(assignment_value(expr), env, stack.copy(), None)
         self.emitter.comment("Done with assignment to " + str(assignment_variable(expr)))
         variable = assignment_variable(expr)
         if is_boxed_value(variable):
@@ -318,13 +319,13 @@ class Compiler(object):
     def assign_to_boxed_variable(self, var, env, stack):
         self.save_on_stack(stack)
         # Load the variable address.
-        self.compile_variable_reference(var, env, stack)
+        self.compile_variable_reference(var, env, stack.copy())
         self.emitter.mov(RAX, RDX)
         self.load_from_stack(stack.get_index())
         self.emitter.mov(RAX, offset(RDX,0))
             
     def alloc_memory(self, stack, size):
-        stack = stack.get_prev_stack()
+        stack.pop()
         self.adjust_base(stack.get_index())
         self.emitter.mov(immediate_const(size), RDI)
         self.emitter.call("pyscm_alloc")
@@ -336,7 +337,7 @@ class Compiler(object):
         (b) addreses of label indicating start of closure's body,
         (c) list of free variables
         """
-        self.alloc_memory(stack,
+        self.alloc_memory(stack.copy(),
                           (2 + size_free_variables) * Compiler.WORDSIZE)
         self.emitter.mov(immediate_const(size_free_variables),
                          offset(RAX, 0))
@@ -361,24 +362,22 @@ class Compiler(object):
         self.save_on_stack(stack)
         self.emitter.mov(RAX, RDX)
         self.untag_closure(RDX)
-        closure_stack_index = stack
-        stack = stack.get_next_stack()
+        closure_stack_index = stack.push()
         closure_env = self.emit_closure_free_variables(expr.free_variables, env, closure_env, stack)
         self.emitter.jmp(closure_end)
         self.emitter.function_header(closure_label)
         self.emitter.push(RBP)
         self.emitter.mov(RSP, RBP)
         if variadic_args:
-            optional_args_location = si
-            si = si.get_next_stack()
+            optional_args_location = si.push()
             self.transform_optional_arguments(closure_env, args,
-                                              optional_args_location, si)
+                                              optional_args_location, si.copy())
             # As the optional arg can be nil, we wouldn't have a space on
             # the stack allocated for it in that case. Therefore, let's move it to
             # the area of local variables, where we can guarantee we have space.
             closure_env.set_var(args[-1], optional_args_location.get_index())
         self.emitter.comment("Allocating boxed values")
-        self.allocate_boxed_parameters(args, closure_env, stack)
+        self.allocate_boxed_parameters(args, closure_env, stack.copy())
         self.emitter.comment("Compiling closure body: " + closure_label + " " + str(expr))
         self.compile_expr(body, closure_env, si, tail_position)
         self.emitter.leave()
@@ -410,8 +409,7 @@ class Compiler(object):
     def create_list_from_optional_arguments(self, first_optional_arg, si):
         self.emitter.comment("Storing nil on stack")
         self.emitter.mov(immediate_const(Compiler.NIL_TAG), offset(RBP, si.get_index()))
-        result = si
-        si = si.get_next_stack()
+        result = si.push()
         self.emitter.comment("Initializing args offset")
         loop_label = self.label_generator.unique_label("optional_args_loop")
         done_label = self.label_generator.unique_label("optional_args_list_empty")
@@ -423,7 +421,7 @@ class Compiler(object):
         self.emitter.comment("Loading next argument")
         self.load_next_optional_argument(first_optional_arg)
         self.emitter.comment("Wrap optional arg into pari")
-        self.wrap_optional_argument_into_pair(RAX, result, si)
+        self.wrap_optional_argument_into_pair(RAX, result, si.copy())
         self.emitter.comment("Saving result")
         self.emitter.mov(RAX, offset(RBP, result.get_index()))
         self.emitter.jmp(loop_label)
@@ -442,7 +440,8 @@ class Compiler(object):
     def wrap_optional_argument_into_pair(self, car_location, cdr_location, si):
         self.emitter.mov(car_location, offset(RSP, si.get_index()))
         self.emitter.comment("Make next cons cell")
-        self.make_pair(offset(RBP, si.get_index()), offset(RBP, cdr_location.get_index()), si.get_next_stack())
+        car_location = si.push()
+        self.make_pair(offset(RBP, car_location.get_index()), offset(RBP, cdr_location.get_index()), si)
 
     def get_closure_arguments(self, args):
         dot = YarpenSymbol(".")
@@ -475,7 +474,7 @@ class Compiler(object):
         for arg in filter(lambda a: is_boxed_value(a), parameters):
             self.emitter.comment("Allocating boxed variable: %s" % str(arg))
             arg_index = env.get_var(arg)
-            self.alloc_memory(stack, Compiler.WORDSIZE)
+            self.alloc_memory(stack.copy(), Compiler.WORDSIZE)
             self.emitter.mov(RAX, RDX)
             self.load_from_stack(arg_index)
             self.emitter.mov(RAX, offset(RDX, 0))
@@ -487,12 +486,14 @@ class Compiler(object):
         # First position past RBP is return address, one before that the
         # number of arguments to the function. The next position contains
         # the first argument.
-        stack = Stack().get_next_stack().get_next_stack()
+        stack = Stack()
+        stack.push()
+        stack.push()
         for arg in closure_args:
             if arg == YarpenSymbol("."):
                 continue
             extended_env = extended_env.extend(arg, -stack.get_index())
-            stack = stack.get_next_stack()
+            stack.push()
         return extended_env
 
     def emit_closure(self, expr, env, stack, tail_position):
@@ -521,22 +522,22 @@ class Compiler(object):
 
     def compile_application(self, expr, env, stack, tail_position):
         self.emitter.comment("Application: " + str(expr) + " is tail position: " + str(tail_position))
-        closure_si = self.emit_closure(expr, env, stack, tail_position)
-        stack = stack.get_next_stack()
+        closure_si = self.emit_closure(expr, env, stack.copy(), tail_position)
+        stack.push()
         if tail_position:
-            self.emit_tail_call(expr, env, stack, closure_si)
+            self.emit_tail_call(expr, env, stack.copy(), closure_si)
         else:
-            self.emit_call(expr, env, stack, closure_si)
+            self.emit_call(expr, env, stack.copy(), closure_si)
 
     def emit_tail_call(self, expr, env, stack, closure_si):
         self.emitter.comment("Emit args: %s" % str(expr.expressions[1:]))
         stack = self.emit_application_arguments(expr.expressions[1:],
                                                 env, stack)
-        stack = stack.get_next_stack()
+        stack.push()
         args_size = len(expr.expressions) - 1
         self.emitter.comment("Saving number of arguments :%d" % args_size)
         self.emitter.mov(immediate_const(args_size), offset(RBP, stack.get_index()))
-        stack = stack.get_next_stack()
+        stack.push()
         # let's load the closure from stack to rbx, otherwise it
         # would be overwritten. we don't need to preserve old rbx,
         # as this is tail call.
@@ -548,19 +549,18 @@ class Compiler(object):
         self.emitter.jmp(dereference(RAX))
 
     def emit_call(self, expr, env, stack, closure_si):
-        stack = stack.get_next_stack()
+        stack.push()
         self.emitter.comment("Emit args.")
         stack = self.emit_application_arguments(expr.expressions[1:],
                                                 env, stack)
-        stack = stack.get_next_stack()
+        stack.push()
         args_size = len(expr.expressions) - 1
         self.emitter.comment("Saving number of arguments :%d" % args_size)
         self.emitter.mov(immediate_const(args_size), offset(RBP, stack.get_index()))
-        stack_before_function_call = stack
-        stack = stack.get_next_stack()
-        closure_register_si = self.save_closure_register(stack)
+        stack_before_function_call = stack.push()
+        closure_register_si = self.save_closure_register(stack.copy())
         self.emit_closure_app(closure_si, stack_before_function_call)
-        stack = stack.get_next_stack()
+        stack.push()
         self.save_on_stack(stack)
         self.load_from_stack(closure_register_si.get_index())
         self.emitter.mov(RAX, RBX)
@@ -586,7 +586,7 @@ class Compiler(object):
             self.emitter.mov(RAX, offset_register(RBP, 0, RCX,
                                                   Compiler.WORDSIZE))
             self.emitter.sub(immediate_const(1), RCX)
-            src = src.get_next_stack()
+            src.push()
 
         self.emitter.comment("Saving return address")
         self.emitter.mov(RDI, offset_register(RBP, 0, RCX,
@@ -601,7 +601,7 @@ class Compiler(object):
 
     def emit_application_arguments(self, args, env, stack):
         for arg in reversed(args):
-            stack = stack.get_next_stack()
+            stack.push()
             self.emitter.comment("Compiling argument " + str(arg))
             self.compile_expr(arg, env, stack, False)
             self.emitter.comment("Saving argument " + str(arg))
