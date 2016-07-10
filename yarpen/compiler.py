@@ -164,7 +164,7 @@ class Compiler(object):
     def compile_prim_add(self, expr, env, stack):
         assert(len(expr.expressions) == 3)
         self.compile_expr(expr.expressions[1], env, stack, None)
-        self.save_on_stack(stack.get_index())
+        self.save_on_stack(stack)
         self.compile_expr(expr.expressions[2], env,
                           stack.get_next_stack(), None)
         self.emitter.add(offset(RBP, stack.get_index()), RAX)
@@ -172,7 +172,7 @@ class Compiler(object):
     def compile_prim_sub(self, expr, env, stack):
         assert(len(expr.expressions) == 3)
         self.compile_expr(expr.expressions[1], env, stack, None)
-        self.save_on_stack(stack.get_index())
+        self.save_on_stack(stack)
         self.compile_expr(expr.expressions[2], env,
                           stack.get_next_stack(), None)
         self.emitter.sub(RAX, offset(RBP, stack.get_index()))
@@ -181,7 +181,7 @@ class Compiler(object):
     def compile_prim_mul(self, expr, env, stack):
         assert(len(expr.expressions) == 3)
         self.compile_expr(expr.expressions[1], env, stack, None)
-        self.save_on_stack(stack.get_index())
+        self.save_on_stack(stack)
         self.compile_expr(expr.expressions[2], env,
                           stack.get_next_stack(), None)
         self.emitter.shr(immediate_const(Compiler.INT_SHIFT), RAX)
@@ -197,13 +197,13 @@ class Compiler(object):
     def compile_prim_cons(self, expr, env, stack):
         assert(len(expr.expressions) == 3)
         self.compile_expr(expr.expressions[1], env, stack, None)
-        self.save_on_stack(stack.get_index())
+        self.save_on_stack(stack)
         car_index = stack
         stack = stack.get_next_stack()
         self.compile_expr(expr.expressions[2], env, stack, None)
         cdr_index = stack
         stack = stack.get_next_stack()
-        self.save_on_stack(cdr_index.get_index())
+        self.save_on_stack(cdr_index)
         self.make_pair(offset(RBP, car_index.get_index()), offset(RBP, cdr_index.get_index()), stack)
 
     def make_pair(self, car, cdr, stack):
@@ -310,13 +310,13 @@ class Compiler(object):
             self.assign_to_boxed_variable(variable.boxed_value, env, stack)
         elif is_variable(variable):
             self.emitter.comment("Saving bound variable: " + str(assignment_variable(expr)))
-            self.save_on_stack(variable_index)
+            self.save_on_stack(Stack(variable_index))
         else:
             self.emitter.comment("Saving free variable: " + str(assignment_variable(expr)))
             self.emitter.mov(RAX, offset(RBX, variable_index))
 
     def assign_to_boxed_variable(self, var, env, stack):
-        self.save_on_stack(stack.get_index())
+        self.save_on_stack(stack)
         # Load the variable address.
         self.compile_variable_reference(var, env, stack)
         self.emitter.mov(RAX, RDX)
@@ -358,7 +358,7 @@ class Compiler(object):
         self.alloc_closure(stack, len(expr.free_variables),
                            closure_label)
         self.emitter.comment("Done allocating closure. Saving it on stack.")
-        self.save_on_stack(stack.get_index())
+        self.save_on_stack(stack)
         self.emitter.mov(RAX, RDX)
         self.untag_closure(RDX)
         closure_stack_index = stack
@@ -480,7 +480,7 @@ class Compiler(object):
             self.load_from_stack(arg_index)
             self.emitter.mov(RAX, offset(RDX, 0))
             self.emitter.mov(RDX, RAX)
-            self.save_on_stack(arg_index)
+            self.save_on_stack(Stack(arg_index))
 
     def extend_env_for_closure(self, closure_args, env):
         extended_env = env
@@ -499,7 +499,7 @@ class Compiler(object):
         self.compile_expr(expr.expressions[0], env, stack, False)
         self.emitter.comment("FOO")
         self.untag_closure(RAX)
-        self.save_on_stack(stack.get_index())
+        self.save_on_stack(stack)
         closure_stack_index = stack
         return closure_stack_index
 
@@ -508,7 +508,7 @@ class Compiler(object):
 
     def save_closure_register(self, stack):
         self.emitter.mov(RBX, RAX)
-        self.save_on_stack(stack.get_index())
+        self.save_on_stack(stack)
         return stack
 
     def emit_closure_app(self, closure_si, stack):
@@ -561,7 +561,7 @@ class Compiler(object):
         closure_register_si = self.save_closure_register(stack)
         self.emit_closure_app(closure_si, stack_before_function_call)
         stack = stack.get_next_stack()
-        self.save_on_stack(stack.get_index())
+        self.save_on_stack(stack)
         self.load_from_stack(closure_register_si.get_index())
         self.emitter.mov(RAX, RBX)
         self.load_from_stack(stack.get_index())
@@ -605,11 +605,11 @@ class Compiler(object):
             self.emitter.comment("Compiling argument " + str(arg))
             self.compile_expr(arg, env, stack, False)
             self.emitter.comment("Saving argument " + str(arg))
-            self.save_on_stack(stack.get_index())
+            self.save_on_stack(stack)
         return stack
 
-    def save_on_stack(self, stack_index):
-        self.emitter.mov(RAX, offset(RBP, stack_index))
+    def save_on_stack(self, stack):
+        self.emitter.mov(RAX, offset(RBP, stack.get_index()))
 
     def load_from_stack(self, stack_index):
         self.emitter.mov(offset(RBP, stack_index), RAX)
