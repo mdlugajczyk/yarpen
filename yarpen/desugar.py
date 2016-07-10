@@ -9,7 +9,7 @@ class Desugarer(object):
     """ Removes the syntatic sugar by transforming expressions
     into equivalent, more primitive constructs. 
 
-    Currently supported synatix sugar: let, letrec, let*
+    Currently supported synatic sugar: let, letrec, let*
     """
 
     def transform(self, exp):
@@ -57,7 +57,7 @@ class Desugarer(object):
       ...)
     body)
 
-can be transformed into an application of lambda expression:
+can be transformed into an application of a lambda expression:
 
 ((lambda (b1 b2 ...) body) exp1 exp2 ...)
         """
