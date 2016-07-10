@@ -30,3 +30,13 @@ class StackTest(TestCase):
         s = Stack()
         previous = s.push()
         self.assertEqual(previous.get_index(), -8)
+
+    def pop_increments_index_test(self):
+        s = Stack()
+        s.pop()
+        self.assertEqual(s.get_index(), 0)
+
+    def pop_returns_stack_with_unmodified_index_test(self):
+        s = Stack()
+        previous = s.pop()
+        self.assertEqual(previous.get_index(), -8)
