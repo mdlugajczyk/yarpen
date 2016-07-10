@@ -21,3 +21,6 @@ class Stack(object):
         s = Stack(self._index)
         self._index += Stack.WORDSIZE
         return s
+
+    def copy(self):
+        return Stack(self._index)

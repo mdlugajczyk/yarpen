@@ -40,3 +40,10 @@ class StackTest(TestCase):
         s = Stack()
         previous = s.pop()
         self.assertEqual(previous.get_index(), -8)
+
+    def copy_returns_new_copy_test(self):
+        s = Stack()
+        s2 = s.copy()
+        s.push()
+        self.assertEqual(s.get_index(), -16)
+        self.assertEqual(s2.get_index(), -8)
