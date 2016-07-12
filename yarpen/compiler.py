@@ -542,7 +542,6 @@ class Compiler(object):
         self.emitter.jmp(dereference(RAX))
 
     def emit_call(self, expr, env, stack, closure_si):
-        stack.grow()
         self.emitter.comment("Emit args.")
         stack = self.emit_application_arguments(expr.expressions[1:],
                                                 env, stack)
