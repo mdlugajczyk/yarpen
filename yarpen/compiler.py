@@ -164,8 +164,7 @@ class Compiler(object):
     def compile_prim_add(self, expr, env, stack):
         assert(len(expr.expressions) == 3)
         self.compile_expr(expr.expressions[1], env, stack, None)
-        self.save_on_stack(stack)
-        partial_result = stack.grow()
+        partial_result = self._push_on_stack(stack)
         self.compile_expr(expr.expressions[2], env,
                           stack.copy(), None)
         self.emitter.add(offset(RBP, partial_result.get_index()), RAX)
@@ -173,8 +172,7 @@ class Compiler(object):
     def compile_prim_sub(self, expr, env, stack):
         assert(len(expr.expressions) == 3)
         self.compile_expr(expr.expressions[1], env, stack, None)
-        self.save_on_stack(stack)
-        partial_result = stack.grow()
+        partial_result = self._push_on_stack(stack)
         self.compile_expr(expr.expressions[2], env,
                           stack.copy(), None)
         self.emitter.sub(RAX, offset(RBP, partial_result.get_index()))
@@ -183,8 +181,7 @@ class Compiler(object):
     def compile_prim_mul(self, expr, env, stack):
         assert(len(expr.expressions) == 3)
         self.compile_expr(expr.expressions[1], env, stack, None)
-        self.save_on_stack(stack)
-        partial_result = stack.grow()
+        partial_result = self._push_on_stack(stack)
         self.compile_expr(expr.expressions[2], env,
                           stack.copy(), None)
         self.emitter.shr(immediate_const(Compiler.INT_SHIFT), RAX)
@@ -200,11 +197,9 @@ class Compiler(object):
     def compile_prim_cons(self, expr, env, stack):
         assert(len(expr.expressions) == 3)
         self.compile_expr(expr.expressions[1], env, stack.copy(), None)
-        self.save_on_stack(stack)
-        car_index = stack.grow()
+        car_index = self._push_on_stack(stack)
         self.compile_expr(expr.expressions[2], env, stack.copy(), None)
-        self.save_on_stack(stack)
-        cdr_index = stack.grow()
+        cdr_index = self._push_on_stack(stack)
         self.make_pair(offset(RBP, car_index.get_index()), offset(RBP, cdr_index.get_index()), stack.copy())
 
     def make_pair(self, car, cdr, stack):
@@ -500,9 +495,7 @@ class Compiler(object):
         self.compile_expr(expr.expressions[0], env, stack, False)
         self.emitter.comment("FOO")
         self.untag_closure(RAX)
-        self.save_on_stack(stack)
-        closure_stack_index = stack
-        return closure_stack_index
+        return self._push_on_stack(stack)
 
     def untag_closure(self, register):
         self.emitter.sub(immediate_const(Compiler.CLOSURE_TAG), register)
@@ -625,6 +618,10 @@ class Compiler(object):
 
     def _arg_count_location(self):
         return offset(RBP, 2*Compiler.WORDSIZE)
+
+    def _push_on_stack(self, stack):
+        self.save_on_stack(stack)
+        return stack.grow()
 
 
 class LabelGenerator:
