@@ -564,7 +564,7 @@ class Compiler(object):
         self.emitter.comment("Save return address")
         self.emitter.mov(offset(RBP, Compiler.WORDSIZE), RDI)
 
-        src = Stack(stack.get_index() + ((len(arguments) + 1)* Compiler.WORDSIZE))
+        src = self.get_stack_index_to_last_parameter(stack, arguments)
 
         self.emitter.comment("Load number of arguments in current frame")
         self.emitter.mov(self._arg_count_location(), RCX)
@@ -590,6 +590,11 @@ class Compiler(object):
 
         self.emitter.comment("Restore od RBP")
         self.emitter.mov(R12, RBP)
+
+    def get_stack_index_to_last_parameter(self, stack, arguments):
+        arg_counter_offset = 1
+        offset = len(arguments) + arg_counter_offset
+        return Stack(stack.get_index() + offset * Compiler.WORDSIZE)
 
     def emit_application_arguments(self, args, env, stack):
         for arg in reversed(args):
