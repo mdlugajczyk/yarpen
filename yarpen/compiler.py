@@ -203,8 +203,8 @@ class Compiler(object):
         self.save_on_stack(stack)
         car_index = stack.grow()
         self.compile_expr(expr.expressions[2], env, stack.copy(), None)
+        self.save_on_stack(stack)
         cdr_index = stack.grow()
-        self.save_on_stack(cdr_index)
         self.make_pair(offset(RBP, car_index.get_index()), offset(RBP, cdr_index.get_index()), stack.copy())
 
     def make_pair(self, car, cdr, stack):
