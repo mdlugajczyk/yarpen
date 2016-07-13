@@ -1,10 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 typedef unsigned long long int pyscm_ptr;
 
 extern pyscm_ptr pyscm_start();
 
+static uint64_t stack_bottom;
 static const int num_mask = 0x03;
 static const int num_tag  = 0x00;
 static const int num_shift = 2;
@@ -19,17 +21,17 @@ static const int char_mask = 0x3F;
 static const int char_tag = 0x0F;
 static const int char_shift = 8;
 
-void pyscm_display_expr(pyscm_ptr expr, int enclose_in_parens);
+static void pyscm_display_expr(pyscm_ptr expr, int enclose_in_parens);
 
-int is_pair(pyscm_ptr expr) {
+static int is_pair(pyscm_ptr expr) {
   return (expr & object_mask) == cons_tag;
 }
 
-int is_nil(pyscm_ptr expr) {
+static int is_nil(pyscm_ptr expr) {
   return (expr & nil_mask) == nil_tag;
 }
 
-void pyscm_display_pair(pyscm_ptr expr, int enclose_in_parens) {
+static void pyscm_display_pair(pyscm_ptr expr, int enclose_in_parens) {
   pyscm_ptr car = *((pyscm_ptr *)(expr-cons_tag));
   pyscm_ptr cdr = *((pyscm_ptr *)(expr-cons_tag) + 1);
   const int  valid_pair = is_pair(cdr) || is_nil(cdr);
@@ -52,7 +54,7 @@ void pyscm_display_pair(pyscm_ptr expr, int enclose_in_parens) {
     printf(")");
 }
 
-void pyscm_display_expr(pyscm_ptr expr, int enclose_with_parens) {
+static void pyscm_display_expr(pyscm_ptr expr, int enclose_with_parens) {
   if ((expr & num_mask) == num_tag) {
     long int res = ((long int) expr) >> num_shift;
     printf("%ld", res);
@@ -81,17 +83,50 @@ void pyscm_display(pyscm_ptr expr) {
   pyscm_display_expr(expr, 1);
 }
 
+static void scan_stack() {
+  uint64_t stack_top;
+  asm volatile ("movq	%%rbp, %0" : "=r" (stack_top));
+
+  uint64_t *sp = (uint64_t *)stack_top;
+  uint64_t *end = (uint64_t *)stack_bottom;
+
+  printf("\n\n\n\n");
+  for (; sp < end; sp++) {
+    printf("%p =  %ld is pair %d\n", sp, *sp, ((*sp & object_mask) == closure_tag));
+  }
+}
+
+typedef struct memory_header {
+  char marked;
+  struct memory_header *next;
+} memory_header;
+
+static memory_header *first_memory_header = NULL;
+static memory_header *last_memory_header = NULL;
+
 void* pyscm_alloc(int size) {
-  void *mem = malloc(size);
+  char *mem = malloc(size + sizeof(memory_header));
   if (!mem) {
     fprintf(stderr, "Failed to allocate %d bytes of memory. Aborting.\n", size);
     exit(1);
   }
 
-  return mem;
+  ((memory_header *)(mem))->marked = 0;
+  ((memory_header *)(mem))->next = NULL;
+
+  if (first_memory_header == NULL)
+    first_memory_header = (memory_header *)mem;
+
+  if (last_memory_header)
+    last_memory_header->next = (memory_header *)mem;
+  else
+    last_memory_header = (memory_header *)mem;
+
+  return mem + sizeof(memory_header);
 }
 
 int main(int argc, char **argv) {
+  asm volatile ("movq	%%rbp, %0" : "=r" (stack_bottom));
   pyscm_display(pyscm_start());
 
   return 0;
