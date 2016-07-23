@@ -87,19 +87,6 @@ void pyscm_display(pyscm_ptr expr) {
   pyscm_display_expr(expr, 1);
 }
 
-static void scan_stack() {
-  uint64_t stack_top;
-  asm volatile ("movq	%%rbp, %0" : "=r" (stack_top));
-
-  uint64_t *sp = (uint64_t *)stack_top;
-  uint64_t *end = (uint64_t *)stack_bottom;
-
-  printf("\n\n\n\n");
-  for (; sp < end; sp++) {
-    printf("%p =  %ld is pair %d\n", sp, *sp, ((*sp & object_mask) == closure_tag));
-  }
-}
-
 typedef struct memory_header {
   char marked;
   struct memory_header *next;
@@ -108,7 +95,34 @@ typedef struct memory_header {
 static memory_header *first_memory_header = NULL;
 static memory_header *last_memory_header = NULL;
 
+static void scan_stack() {
+  uint64_t stack_top;
+  asm volatile ("movq	%%rbp, %0" : "=r" (stack_top));
+
+  uint64_t *sp = (uint64_t *)stack_top;
+  uint64_t *sp_end = (uint64_t *)stack_bottom;
+
+  for (; sp < sp_end; sp++) {
+    if (is_closure((pyscm_ptr)sp)) {
+      ((memory_header *)(sp - sizeof(memory_header)))->marked = 1;
+    }
+  }
+}
+
+static void mark() {
+  scan_stack();
+}
+
+static void sweep() {
+}
+
+static void gc() {
+  mark();
+  sweep();
+}
+
 void* pyscm_alloc(int size) {
+  gc();
   char *mem = malloc(size + sizeof(memory_header));
   if (!mem) {
     fprintf(stderr, "Failed to allocate %d bytes of memory. Aborting.\n", size);
