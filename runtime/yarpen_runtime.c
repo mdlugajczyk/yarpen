@@ -110,6 +110,12 @@ static memory_header *cast_to_memory_header(yarpen_ptr expr) {
 static void scan_expression(const yarpen_ptr expr) {
   if (is_closure(expr)) {
     cast_to_memory_header(expr)->marked = 1;
+  } else if (is_pair(expr)) {
+    memory_header *mem = cast_to_memory_header(expr);
+    if (mem->marked)
+      return;
+    scan_expression(get_car(expr));
+    scan_expression(get_cdr(expr));
   }
 }
 
