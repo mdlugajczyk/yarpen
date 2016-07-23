@@ -35,9 +35,17 @@ static int is_closure(pyscm_ptr expr) {
   return (expr & object_mask) == closure_tag;
 }
 
+static pyscm_ptr get_car(pyscm_ptr cons) {
+  return *((pyscm_ptr *)(cons-cons_tag));
+}
+
+static pyscm_ptr get_cdr(pyscm_ptr cons) {
+  return *((pyscm_ptr *)(cons-cons_tag) + 1);
+}
+
 static void pyscm_display_pair(pyscm_ptr expr, int enclose_in_parens) {
-  const pyscm_ptr car = *((pyscm_ptr *)(expr-cons_tag));
-  const pyscm_ptr cdr = *((pyscm_ptr *)(expr-cons_tag) + 1);
+  const pyscm_ptr car = get_car(expr);
+  const pyscm_ptr cdr = get_cdr(expr);
   const int  valid_pair = is_pair(cdr) || is_nil(cdr);
 
   if (enclose_in_parens)
