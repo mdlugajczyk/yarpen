@@ -31,6 +31,10 @@ static int is_nil(pyscm_ptr expr) {
   return (expr & nil_mask) == nil_tag;
 }
 
+static int is_closure(pyscm_ptr expr) {
+  return (expr & object_mask) == closure_tag;
+}
+
 static void pyscm_display_pair(pyscm_ptr expr, int enclose_in_parens) {
   const pyscm_ptr car = *((pyscm_ptr *)(expr-cons_tag));
   const pyscm_ptr cdr = *((pyscm_ptr *)(expr-cons_tag) + 1);
@@ -68,7 +72,7 @@ static void pyscm_display_expr(pyscm_ptr expr, int enclose_with_parens) {
       printf("%c", c);
     else
       printf("#\\%c", c);
-  } else if ((expr & object_mask) == closure_tag) {
+  } else if (is_closure(expr)) {
     printf("closure");
   } else if (is_pair(expr)) {
     pyscm_display_pair(expr, enclose_with_parens);
