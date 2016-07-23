@@ -66,18 +66,18 @@ class Compiler(object):
 
         The RBX register is used to store the current closure.
         """
-        self.emitter.entry_point_preamble("pyscm_start")
+        self.emitter.entry_point_preamble("yarpen_start")
         self.emitter.push(RBP)
         self.emitter.mov(RSP, RBP)
 
         self.emitter.comment("The implicit parameter with number of arguments")
         self.emitter.push(immediate_const(0))
-        self.emitter.call("__real_pyscm_start")
+        self.emitter.call("__real_yarpen_start")
 
         self.emitter.leave()
         self.emitter.ret()
 
-        self.emitter.function_header("__real_pyscm_start")
+        self.emitter.function_header("__real_yarpen_start")
         self.emitter.push(RBP)
         self.emitter.mov(RSP, RBP)
         exprs = self._get_transformed_source()
@@ -323,7 +323,7 @@ class Compiler(object):
         stack.shrink()
         self.adjust_base(stack.get_index())
         self.emitter.mov(immediate_const(size), RDI)
-        self.emitter.call("pyscm_alloc")
+        self.emitter.call("yarpen_alloc")
         self.adjust_base(- stack.get_index())
 
     def alloc_closure(self, stack, size_free_variables, label):

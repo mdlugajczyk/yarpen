@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-typedef unsigned long long int pyscm_ptr;
+typedef unsigned long long int yarpen_ptr;
 
-extern pyscm_ptr pyscm_start();
+extern yarpen_ptr yarpen_start();
 
 static uint64_t stack_bottom;
 static const int num_mask = 0x03;
@@ -21,36 +21,36 @@ static const int char_mask = 0x3F;
 static const int char_tag = 0x0F;
 static const int char_shift = 8;
 
-static void pyscm_display_expr(pyscm_ptr expr, int enclose_in_parens);
+static void yarpen_display_expr(yarpen_ptr expr, int enclose_in_parens);
 
-static int is_pair(pyscm_ptr expr) {
+static int is_pair(yarpen_ptr expr) {
   return (expr & object_mask) == cons_tag;
 }
 
-static int is_nil(pyscm_ptr expr) {
+static int is_nil(yarpen_ptr expr) {
   return (expr & nil_mask) == nil_tag;
 }
 
-static int is_closure(pyscm_ptr expr) {
+static int is_closure(yarpen_ptr expr) {
   return (expr & object_mask) == closure_tag;
 }
 
-static pyscm_ptr get_car(pyscm_ptr cons) {
-  return *((pyscm_ptr *)(cons-cons_tag));
+static yarpen_ptr get_car(yarpen_ptr cons) {
+  return *((yarpen_ptr *)(cons-cons_tag));
 }
 
-static pyscm_ptr get_cdr(pyscm_ptr cons) {
-  return *((pyscm_ptr *)(cons-cons_tag) + 1);
+static yarpen_ptr get_cdr(yarpen_ptr cons) {
+  return *((yarpen_ptr *)(cons-cons_tag) + 1);
 }
 
-static void pyscm_display_pair(pyscm_ptr expr, int enclose_in_parens) {
-  const pyscm_ptr car = get_car(expr);
-  const pyscm_ptr cdr = get_cdr(expr);
+static void yarpen_display_pair(yarpen_ptr expr, int enclose_in_parens) {
+  const yarpen_ptr car = get_car(expr);
+  const yarpen_ptr cdr = get_cdr(expr);
   const int  valid_pair = is_pair(cdr) || is_nil(cdr);
 
   if (enclose_in_parens)
     printf("(");
-  pyscm_display_expr(car, 1);
+  yarpen_display_expr(car, 1);
   if (is_nil(cdr)) {
     if (enclose_in_parens)
       printf(")");
@@ -61,12 +61,12 @@ static void pyscm_display_pair(pyscm_ptr expr, int enclose_in_parens) {
   else
     printf(" . ");
 
-  pyscm_display_expr(cdr, 0);
+  yarpen_display_expr(cdr, 0);
   if (enclose_in_parens)
     printf(")");
 }
 
-static void pyscm_display_expr(pyscm_ptr expr, int enclose_with_parens) {
+static void yarpen_display_expr(yarpen_ptr expr, int enclose_with_parens) {
   if ((expr & num_mask) == num_tag) {
     const long int res = ((long int) expr) >> num_shift;
     printf("%ld", res);
@@ -83,7 +83,7 @@ static void pyscm_display_expr(pyscm_ptr expr, int enclose_with_parens) {
   } else if (is_closure(expr)) {
     printf("closure");
   } else if (is_pair(expr)) {
-    pyscm_display_pair(expr, enclose_with_parens);
+    yarpen_display_pair(expr, enclose_with_parens);
   } else if (is_nil(expr)) {
     printf("()");
   } else {
@@ -91,8 +91,8 @@ static void pyscm_display_expr(pyscm_ptr expr, int enclose_with_parens) {
   }
 }
 
-void pyscm_display(pyscm_ptr expr) {
-  pyscm_display_expr(expr, 1);
+void yarpen_display(yarpen_ptr expr) {
+  yarpen_display_expr(expr, 1);
 }
 
 typedef struct memory_header {
@@ -103,11 +103,11 @@ typedef struct memory_header {
 static memory_header *first_memory_header = NULL;
 static memory_header *last_memory_header = NULL;
 
-static memory_header *cast_to_memory_header(pyscm_ptr expr) {
+static memory_header *cast_to_memory_header(yarpen_ptr expr) {
   return (memory_header *)(expr - sizeof(memory_header));
 }
 
-static void scan_expression(const pyscm_ptr expr) {
+static void scan_expression(const yarpen_ptr expr) {
   if (is_closure(expr)) {
     cast_to_memory_header(expr)->marked = 1;
   }
@@ -121,7 +121,7 @@ static void scan_stack() {
   uint64_t *sp_end = (uint64_t *)stack_bottom;
 
   for (; sp < sp_end; sp++) {
-    const pyscm_ptr expr = (pyscm_ptr)sp;
+    const yarpen_ptr expr = (yarpen_ptr)sp;
     scan_expression(expr);
   }
 }
@@ -138,7 +138,7 @@ static void gc() {
   sweep();
 }
 
-void* pyscm_alloc(int size) {
+void* yarpen_alloc(int size) {
   gc();
   char *mem = malloc(size + sizeof(memory_header));
   if (!mem) {
@@ -162,7 +162,7 @@ void* pyscm_alloc(int size) {
 
 int main(int argc, char **argv) {
   asm volatile ("movq	%%rbp, %0" : "=r" (stack_bottom));
-  pyscm_display(pyscm_start());
+  yarpen_display(yarpen_start());
 
   return 0;
 }
