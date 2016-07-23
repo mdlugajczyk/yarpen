@@ -134,6 +134,9 @@ static void scan_stack() {
 
 static void mark() {
   scan_stack();
+  uint64_t rbx;
+  asm volatile ("movq	%%rbx, %0" : "=r" (rbx));
+  scan_expression(rbx);
 }
 
 static void sweep() {
