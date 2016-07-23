@@ -32,8 +32,8 @@ static int is_nil(pyscm_ptr expr) {
 }
 
 static void pyscm_display_pair(pyscm_ptr expr, int enclose_in_parens) {
-  pyscm_ptr car = *((pyscm_ptr *)(expr-cons_tag));
-  pyscm_ptr cdr = *((pyscm_ptr *)(expr-cons_tag) + 1);
+  const pyscm_ptr car = *((pyscm_ptr *)(expr-cons_tag));
+  const pyscm_ptr cdr = *((pyscm_ptr *)(expr-cons_tag) + 1);
   const int  valid_pair = is_pair(cdr) || is_nil(cdr);
 
   if (enclose_in_parens)
@@ -56,14 +56,14 @@ static void pyscm_display_pair(pyscm_ptr expr, int enclose_in_parens) {
 
 static void pyscm_display_expr(pyscm_ptr expr, int enclose_with_parens) {
   if ((expr & num_mask) == num_tag) {
-    long int res = ((long int) expr) >> num_shift;
+    const long int res = ((long int) expr) >> num_shift;
     printf("%ld", res);
   } else if (expr == bool_t) {
     printf("#t");
   } else if (expr == bool_f) {
     printf("#f");
   } else if ((expr & char_mask) == char_tag) {
-    char c = (char)(expr >> char_shift);
+    const char c = (char)(expr >> char_shift);
     if (c == '\n' || c == ' ')
       printf("%c", c);
     else
