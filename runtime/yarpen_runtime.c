@@ -103,6 +103,12 @@ typedef struct memory_header {
 static memory_header *first_memory_header = NULL;
 static memory_header *last_memory_header = NULL;
 
+static void scan_expression(const pyscm_ptr expr) {
+  if (is_closure(expr)) {
+    ((memory_header *)(expr - sizeof(memory_header)))->marked = 1;
+  }
+}
+
 static void scan_stack() {
   uint64_t stack_top;
   asm volatile ("movq	%%rbp, %0" : "=r" (stack_top));
@@ -111,9 +117,8 @@ static void scan_stack() {
   uint64_t *sp_end = (uint64_t *)stack_bottom;
 
   for (; sp < sp_end; sp++) {
-    if (is_closure((pyscm_ptr)sp)) {
-      ((memory_header *)(sp - sizeof(memory_header)))->marked = 1;
-    }
+    const pyscm_ptr expr = (pyscm_ptr)sp;
+    scan_expression(expr);
   }
 }
 
