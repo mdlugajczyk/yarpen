@@ -103,9 +103,13 @@ typedef struct memory_header {
 static memory_header *first_memory_header = NULL;
 static memory_header *last_memory_header = NULL;
 
+static memory_header *cast_to_memory_header(pyscm_ptr expr) {
+  return (memory_header *)(expr - sizeof(memory_header));
+}
+
 static void scan_expression(const pyscm_ptr expr) {
   if (is_closure(expr)) {
-    ((memory_header *)(expr - sizeof(memory_header)))->marked = 1;
+    cast_to_memory_header(expr)->marked = 1;
   }
 }
 
