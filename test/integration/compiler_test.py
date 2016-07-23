@@ -26,7 +26,7 @@ def run_tests():
             print("Failed to compile test.")
             break
         try:
-            output = check_output("./yarpen_code.s.out").decode('ascii')
+            output = check_output("valgrind -q --error-exitcode=1 --leak-check=no ./yarpen_code.s.out".split(" ")).decode('ascii')
             if output != test[2]:
                 print(("Test failed. Expected %s got %s\nCode: %s"
                        % (test[2], output, test[1])))
