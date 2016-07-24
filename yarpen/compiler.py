@@ -309,9 +309,6 @@ class Compiler(object):
         elif is_variable(variable):
             self.emitter.comment("Saving bound variable: " + str(assignment_variable(expr)))
             self.save_on_stack(Stack(variable_index))
-        else:
-            self.emitter.comment("Saving free variable: " + str(assignment_variable(expr)))
-            self.emitter.mov(RAX, offset(RBX, variable_index))
 
     def assign_to_boxed_variable(self, var, env, stack):
         self.save_on_stack(stack)
