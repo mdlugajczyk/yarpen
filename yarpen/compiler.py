@@ -274,7 +274,9 @@ class Compiler(object):
             self.load_from_stack(variable_index)
         else:
             self.emitter.comment("Loading free variable: " + str(unboxed_variable))
-            self.emitter.mov(offset(RBX, variable_index), RAX)
+            self.emitter.mov(RBX, RAX)
+            self.untag_closure(RAX)
+            self.emitter.mov(offset(RAX, variable_index), RAX)
         if is_boxed_value(expr):
             self.emitter.comment("Loading boxed variable")
             self.emitter.mov(offset(RAX,0), RAX)
@@ -493,8 +495,6 @@ class Compiler(object):
 
     def emit_closure(self, expr, env, stack, tail_position):
         self.compile_expr(expr.expressions[0], env, stack, False)
-        self.emitter.comment("FOO")
-        self.untag_closure(RAX)
         return self._push_on_stack(stack)
 
     def untag_closure(self, register):
@@ -508,6 +508,7 @@ class Compiler(object):
     def emit_closure_app(self, closure_si, stack):
         self.load_from_stack(closure_si.get_index())
         self.emitter.mov(RAX, RBX)
+        self.untag_closure(RAX)
         self.emitter.mov(offset(RAX, Compiler.WORDSIZE), RAX)
         self.adjust_base(stack.get_index())
         self.emitter.call(dereference(RAX))
@@ -538,7 +539,9 @@ class Compiler(object):
         self.load_from_stack(closure_si.get_index())
         self.emitter.mov(RAX, RBX)
         self.shift_arguments_for_tail_call(stack, expr.expressions[1:])
-        self.emitter.mov(offset(RBX, Compiler.WORDSIZE), RAX)
+        self.emitter.mov(RBX, RAX)
+        self.untag_closure(RAX)
+        self.emitter.mov(offset(RAX, Compiler.WORDSIZE), RAX)
         self.emitter.jmp(dereference(RAX))
 
     def emit_call(self, expr, env, stack, closure_si):
