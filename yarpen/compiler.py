@@ -28,6 +28,7 @@ class Compiler(object):
     CLOSURE_TAG = 0x02
     CONS_TAG = 0x01
     OBJECT_MASK = 0x07
+    BOXED_PARAM_TAG = 0x3
     NIL_TAG = 0x47
     NIL_MASK = 0xCF
     WORDSIZE = 8
@@ -279,6 +280,7 @@ class Compiler(object):
             self.emitter.mov(offset(RAX, variable_index), RAX)
         if is_boxed_value(expr):
             self.emitter.comment("Loading boxed variable")
+            self.untag_boxed_variable(RAX)
             self.emitter.mov(offset(RAX,0), RAX)
 
     def compile_if(self, expr, env, stack, tail_position):
@@ -316,6 +318,7 @@ class Compiler(object):
         self.compile_variable_reference(var, env, stack.copy())
         self.emitter.mov(RAX, RDX)
         self.load_from_stack(stack.get_index())
+        self.untag_boxed_variable(RDX)
         self.emitter.mov(RAX, offset(RDX,0))
             
     def alloc_memory(self, stack, size):
@@ -473,6 +476,7 @@ class Compiler(object):
             self.load_from_stack(arg_index)
             self.emitter.mov(RAX, offset(RDX, 0))
             self.emitter.mov(RDX, RAX)
+            self.emitter.or_inst(immediate_const(Compiler.BOXED_PARAM_TAG), RAX)
             self.save_on_stack(Stack(arg_index))
 
     def extend_env_for_closure(self, closure_args, env):
@@ -496,6 +500,9 @@ class Compiler(object):
 
     def untag_closure(self, register):
         self.emitter.sub(immediate_const(Compiler.CLOSURE_TAG), register)
+
+    def untag_boxed_variable(self, register):
+        self.emitter.sub(immediate_const(Compiler.BOXED_PARAM_TAG), register)
 
     def save_closure_register(self, stack):
         self.emitter.mov(RBX, RAX)
