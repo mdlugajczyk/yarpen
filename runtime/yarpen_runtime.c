@@ -2,6 +2,13 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#ifdef DEBUG
+#define debug_print(...) do{ printf( __VA_ARGS__ ); } while( 0 )
+#else
+#define debug_print(...) do{ } while ( 0 )
+#endif
+
+
 typedef unsigned long long int yarpen_ptr;
 
 extern yarpen_ptr yarpen_start();
@@ -107,13 +114,43 @@ static memory_header *cast_to_memory_header(yarpen_ptr expr) {
   return (memory_header *)(expr - sizeof(memory_header));
 }
 
+static int is_valid_memory(yarpen_ptr expr) {
+  memory_header *mem = NULL;
+  memory_header *expr_header = cast_to_memory_header(expr);
+  debug_print("is_valid_memory %p header at %p\n", expr, expr_header);
+
+  for (mem = first_memory_header; mem != NULL;  mem = mem->next) {
+    if (expr_header == mem)
+      return 1;
+  }
+  return 0;
+}
+
 static void scan_expression(const yarpen_ptr expr) {
+  /* debug_print("scan %p is closure %d is_pair %d\n", expr, is_closure(expr), is_pair(expr)); */
   if (is_closure(expr)) {
-    cast_to_memory_header(expr)->marked = 1;
+     debug_print("CLOSURE %p\n", expr);
+    const yarpen_ptr untagged_closure = expr - closure_tag;
+    if (!is_valid_memory(untagged_closure)) {
+      debug_print("not a valid closure %p\n", untagged_closure);
+      return;
+    }
+    cast_to_memory_header(untagged_closure)->marked = 1;
+    debug_print("marking closure %p\n", untagged_closure);
   } else if (is_pair(expr)) {
-    memory_header *mem = cast_to_memory_header(expr);
+    debug_print("CONS %p\n", expr);
+    const yarpen_ptr untagged_pair = expr - cons_tag;
+    if (!is_valid_memory(untagged_pair)) {
+      //debug_print("not a valid cons %p\n", (uint64_t *)untagged_pair);
+      return;
+    }
+    debug_print("marking cons\n");
+    memory_header *mem = cast_to_memory_header(untagged_pair);
     if (mem->marked)
       return;
+//    debug_print("marking %p\n", untagged_pair);
+    mem->marked = 1;
+
     scan_expression(get_car(expr));
     scan_expression(get_cdr(expr));
   }
@@ -127,7 +164,7 @@ static void scan_stack() {
   uint64_t *sp_end = (uint64_t *)stack_bottom;
 
   for (; sp < sp_end; sp++) {
-    const yarpen_ptr expr = (yarpen_ptr)sp;
+    const yarpen_ptr expr = (yarpen_ptr)*sp;
     scan_expression(expr);
   }
 }
@@ -140,18 +177,47 @@ static void mark() {
 }
 
 static void sweep() {
+  memory_header *mem = NULL;
+  memory_header *prev = NULL;
+  debug_print("\n\n\nSWEEP\n");
+
+  for (mem = first_memory_header; mem != NULL;  mem = mem->next) {
+    if (mem->marked) {
+      debug_print("%p is marked SO WILL LIVE\n", mem);
+      mem->marked = 0;
+      continue;
+    }
+
+    if (mem->marked) {
+      mem->marked = 0;
+    } else {
+      const yarpen_ptr expr = (yarpen_ptr)(mem + sizeof(memory_header));
+      if (prev == NULL)
+    	first_memory_header = mem->next;
+      else
+    	prev->next = mem->next;
+
+      if (mem->next == NULL)
+	last_memory_header = NULL;
+      debug_print("Freeing memory at %p\n", expr);
+      *((uint64_t *)expr) = 0;
+      free(mem);
+    }
+    prev = mem;
+  }
 }
 
 static void gc() {
-  mark();
-  sweep();
+//  debug_print("GC\n");
+  /* mark(); */
+  /* sweep(); */
 }
 
 void* yarpen_alloc(int size) {
   gc();
   char *mem = malloc(size + sizeof(memory_header));
   if (!mem) {
-    fprintf(stderr, "Failed to allocate %d bytes of memory. Aborting.\n", size);
+    debug_print(stderr, "Failed to allocate %d bytes of memory. Aborting.\n", size);
     exit(1);
   }
 
@@ -161,17 +227,22 @@ void* yarpen_alloc(int size) {
   if (first_memory_header == NULL)
     first_memory_header = (memory_header *)mem;
 
-  if (last_memory_header)
+  if (last_memory_header) {
     last_memory_header->next = (memory_header *)mem;
-  else
     last_memory_header = (memory_header *)mem;
+  } else {
+    last_memory_header = (memory_header *)mem;
+  }
 
-  return mem + sizeof(memory_header);
+  char *ret =  mem + sizeof(memory_header);
+  debug_print("Allocated %p, returning %p\n", mem, ret);
+  return ret;
 }
 
 int main(int argc, char **argv) {
   asm volatile ("movq	%%rbp, %0" : "=r" (stack_bottom));
   yarpen_display(yarpen_start());
+  gc();
 
   return 0;
 }
