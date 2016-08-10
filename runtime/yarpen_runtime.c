@@ -20,6 +20,7 @@ static const int num_shift = 2;
 static const int bool_f = 0x2F;
 static const int bool_t = 0x6F;
 static const int object_mask = 0x07;
+static const int boxed_value_tag = 0x03;
 static const int closure_tag = 0x02;
 static const int cons_tag = 0x01;
 static const int nil_tag = 0x47;
@@ -40,6 +41,10 @@ static int is_nil(yarpen_ptr expr) {
 
 static int is_closure(yarpen_ptr expr) {
   return (expr & object_mask) == closure_tag;
+}
+
+static int is_boxed_value(yarpen_ptr expr) {
+  return (expr & object_mask) == boxed_value_tag;
 }
 
 static yarpen_ptr get_car(yarpen_ptr cons) {
@@ -153,6 +158,17 @@ static void scan_expression(const yarpen_ptr expr) {
 
     scan_expression(get_car(expr));
     scan_expression(get_cdr(expr));
+  } else if (is_boxed_value(expr)) {
+    debug_print("Boxed value %p\n", expr);
+    const yarpen_ptr untagged_value = expr - boxed_value_tag;
+    if (!is_valid_memory(untagged_value)) {
+      debug_print("not a valid boxed value %p\n", (uint64_t*)untagged_value);
+      return;
+    }
+
+    debug_print("marking boxed value\n");
+    memory_header *mem = cast_to_memory_header(untagged_value);
+    mem->marked = 1;
   }
 }
 
