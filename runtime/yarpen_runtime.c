@@ -201,11 +201,8 @@ static void sweep() {
     if (mem->marked) {
       debug_print("%p is marked SO WILL LIVE\n", mem);
       mem->marked = 0;
+      prev = mem;
       continue;
-    }
-
-    if (mem->marked) {
-      mem->marked = 0;
     } else {
       const yarpen_ptr expr = (yarpen_ptr)(mem + sizeof(memory_header));
       if (prev == NULL)
@@ -219,7 +216,6 @@ static void sweep() {
       *((uint64_t *)expr) = 0;
       free(mem);
     }
-    prev = mem;
   }
 }
 
