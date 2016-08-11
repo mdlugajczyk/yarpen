@@ -169,6 +169,7 @@ static void scan_expression(const yarpen_ptr expr) {
     debug_print("marking boxed value\n");
     memory_header *mem = cast_to_memory_header(untagged_value);
     mem->marked = 1;
+    scan_expression(untagged_value);
   }
 }
 
