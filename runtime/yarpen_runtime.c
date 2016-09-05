@@ -131,6 +131,8 @@ static int is_valid_memory(yarpen_ptr expr) {
   return 0;
 }
 
+static void scan_closure(const yarpen_ptr expr); 
+
 static void scan_expression(const yarpen_ptr expr) {
   /* debug_print("scan %p is closure %d is_pair %d\n", expr, is_closure(expr), is_pair(expr)); */
   if (is_closure(expr)) {
@@ -142,6 +144,7 @@ static void scan_expression(const yarpen_ptr expr) {
     }
     cast_to_memory_header(untagged_closure)->marked = 1;
     debug_print("marking closure %p\n", untagged_closure);
+    scan_closure(untagged_closure);
   } else if (is_pair(expr)) {
     debug_print("CONS %p\n", expr);
     const yarpen_ptr untagged_pair = expr - cons_tag;
@@ -171,6 +174,16 @@ static void scan_expression(const yarpen_ptr expr) {
     mem->marked = 1;
     scan_expression(untagged_value);
   }
+}
+
+static void scan_closure(const yarpen_ptr expr) {
+  uint64_t num_free_vars = *((uint64_t *)expr);
+  uint64_t *first_free_var = (uint64_t *)(expr + 2 * sizeof(uint64_t));
+
+  printf("scan closure %ju\n", num_free_vars);
+  int i;
+  for (i = 0; i < num_free_vars; i++)
+    scan_expression(*first_free_var++);
 }
 
 static void scan_stack() {
