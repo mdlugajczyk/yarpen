@@ -180,7 +180,6 @@ static void scan_closure(const yarpen_ptr expr) {
   uint64_t num_free_vars = *((uint64_t *)expr);
   uint64_t *first_free_var = (uint64_t *)(expr + 2 * sizeof(uint64_t));
 
-  printf("scan closure %ju\n", num_free_vars);
   int i;
   for (i = 0; i < num_free_vars; i++)
     scan_expression(*first_free_var++);
@@ -227,7 +226,6 @@ static void sweep() {
       if (mem->next == NULL)
 	last_memory_header = NULL;
       debug_print("Freeing memory at %p\n", expr);
-      *((uint64_t *)expr) = 0;
       free(mem);
     }
   }
