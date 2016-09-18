@@ -1,0 +1,44 @@
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:scan_expression
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:sweep
+   fun:gc
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Cond
+   fun:is_valid_memory
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Addr8
+   fun:sweep
+   fun:gc
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Value8
+   fun:scan_closure
+   fun:scan_expression
+   fun:scan_stack
+   fun:mark
+   fun:gc
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Value8
+   fun:scan_expression
+   fun:scan_stack
+   fun:mark
+   fun:gc
+}
