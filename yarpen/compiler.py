@@ -90,8 +90,8 @@ class Compiler(object):
 
     def compile_exprs(self, exprs, env, stack, tail_position):
         for expr in exprs[:-1]:
-            self.compile_expr(expr, env, stack.copy(), False)
-        self.compile_expr(exprs[-1], env, stack.copy(), tail_position)
+            self.compile_expr(expr, env, stack, False)
+        self.compile_expr(exprs[-1], env, stack, tail_position)
 
     def compile_expr(self, expr, env, stack, tail_position):
         if is_number(expr):
