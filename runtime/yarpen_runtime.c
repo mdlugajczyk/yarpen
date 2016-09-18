@@ -224,7 +224,7 @@ static void sweep() {
     	prev->next = mem->next;
 
       if (mem->next == NULL)
-	last_memory_header = NULL;
+	last_memory_header = prev;
       debug_print("Freeing memory at %p\n", expr);
       free(mem);
     }

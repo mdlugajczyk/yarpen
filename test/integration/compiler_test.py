@@ -150,18 +150,18 @@ add_group("closures",
     (cnt1)
     (cnt2)
     (cnt2)))""", "2"),
-           # ("""(let ((Y (lambda (X)
-  #   ((lambda (procedure)
-  #      (X (lambda (arg) ((procedure procedure) arg))))
-  #    (lambda (procedure)
-  #      (X (lambda (arg) ((procedure procedure) arg))))))))
-  # (let ((F* (lambda (func-arg)
-  #           (lambda (n)
-  #             (if (zero? n)
-  #       	  1
-  #       	  (fx* n (func-arg (fx- n 1))))))))
-  # (let ((fact
-  #  (Y F*))) (fact 5))))""", "120"),
+           ("""(let ((Y (lambda (X)
+    ((lambda (procedure)
+       (X (lambda (arg) ((procedure procedure) arg))))
+     (lambda (procedure)
+       (X (lambda (arg) ((procedure procedure) arg))))))))
+  (let ((F* (lambda (func-arg)
+            (lambda (n)
+              (if (zero? n)
+        	  1
+        	  (fx* n (func-arg (fx- n 1))))))))
+  (let ((fact
+   (Y F*))) (fact 5))))""", "120"),
            ("""(let ((x 3))
            (let ((z 4))
                (let ((y (lambda () x)))
