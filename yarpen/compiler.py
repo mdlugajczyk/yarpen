@@ -113,7 +113,7 @@ class Compiler(object):
         elif is_begin(expr):
             self.compile_begin(expr, env, stack.copy(), tail_position)
         elif is_assignment(expr):
-            self.compile_assignment(expr, env, stack.copy())
+            self.compile_assignment(expr, env, stack)
         elif is_application(expr):
             return self.compile_application(expr, env, stack.copy(), tail_position)
         else:
