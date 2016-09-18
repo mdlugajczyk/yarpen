@@ -232,9 +232,8 @@ static void sweep() {
 }
 
 static void gc() {
-//  debug_print("GC\n");
-  /* mark(); */
-  /* sweep(); */
+  mark();
+  sweep();
 }
 
 void* yarpen_alloc(int size) {
