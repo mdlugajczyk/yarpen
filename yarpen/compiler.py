@@ -313,7 +313,7 @@ class Compiler(object):
             self.save_on_stack(Stack(variable_index))
 
     def assign_to_boxed_variable(self, var, env, stack):
-        self.save_on_stack(stack)
+        stack = self._push_on_stack(stack)
         # Load the variable address.
         self.compile_variable_reference(var, env, stack.copy())
         self.emitter.mov(RAX, RDX)
