@@ -1,0 +1,37 @@
+Yarpen is an educational native compiler for a subset of the Scheme programming language.
+The compiler generates x64 assembly, which is passed to gcc, which compiles
+the small runtime (written in C) and links everything together to produce the final binary.
+
+The runtime implements a print function & a simple mark and sweep garbage collector.
+
+Implemented language features:
+  - integers
+  - characters
+  - booleans
+  - conditionals
+  - begin
+  - let, let*, letrec
+  - closures
+  - lists
+  - define syntax for functions
+  - the "." syntax for define to make variadic functions
+  - TCO
+
+While the implemented subset of Scheme is non trivial, it's quite limited.
+Most notably it's missing:
+ - IO (compiled program just prints value of the last expression)
+ - continuations
+ - macros
+ - apply/eval
+ - vectors
+
+One day I may implement some of them.
+
+For the definitive guide on usage and/or supported language features,
+check the integration tests in test/integration/compiler_test.py
+
+Resources used during development:
+    - An Incremental approach to Compiler Construction http://scheme2006.cs.uchicago.edu/11-ghuloum.pdf
+    - Matt Might excellent blog, in particular two posts:
+        * Closure conversion: How to compile lambda http://matt.might.net/articles/closure-conversion/
+        * Compiling Scheme to C with closure conversion http://matt.might.net/articles/compiling-scheme-to-c/
